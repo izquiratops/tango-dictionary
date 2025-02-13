@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Página Principal</title>
+</head>
+<body>
+    <h1>Bienvenido, {{.Name}}!</h1>
+    <p>Hora actual: {{.Time}}</p>
+    <form action="/greet" method="get">
+        <input type="text" name="name" placeholder="Tu nombre">
+        <input type="submit" value="Saludar">
+    </form>
+</body>
+</html>
