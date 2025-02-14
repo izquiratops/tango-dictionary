@@ -105,14 +105,14 @@ type JMdictGloss struct {
 
 // Used in JishoClone
 
-type SearchableEntry struct {
+type BleveEntry struct {
 	ID       string   `json:"id"`
 	Kanji    []string `json:"kanji"`
 	Kana     []string `json:"kana"`
 	Meanings []string `json:"meanings"`
 }
 
-type DictionaryImporter struct {
+type Database struct {
 	mongoClient *mongo.Client
 	collection  *mongo.Collection
 	bleveIndex  bleve.Index

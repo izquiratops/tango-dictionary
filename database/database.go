@@ -14,44 +14,42 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func NewDictionaryImporter(mongoURI string, batchSize int) (*DictionaryImporter, error) {
+func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
 	}
 
-	// Configurar Bleve
+	// Setup Bleve
 	mapping := bleve.NewIndexMapping()
 
 	documentMapping := bleve.NewDocumentMapping()
-
-	// TODO: Apply index for Japanese too! "プレ" doesn't work
 	documentMapping.AddFieldMappingsAt("kanji", bleve.NewTextFieldMapping())
 	documentMapping.AddFieldMappingsAt("kana", bleve.NewTextFieldMapping())
 	documentMapping.AddFieldMappingsAt("meanings", bleve.NewTextFieldMapping())
 
 	mapping.AddDocumentMapping("_default", documentMapping)
 
-	// Crear o abrir índice Bleve
-	bleveIndex, err := bleve.New("dictionary.bleve", mapping)
+	// Try to Open index, Create one if doesn't exist
+	bleveIndex, err := bleve.New("jmdict.bleve", mapping)
 
 	if err != nil {
-		bleveIndex, err = bleve.Open("dictionary.bleve")
+		bleveIndex, err = bleve.Open("jmdict.bleve")
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}
 	}
 
-	return &DictionaryImporter{
+	return &Database{
 		mongoClient: client,
-		collection:  client.Database("dictionary").Collection("entries"),
+		collection:  client.Database("dictionary").Collection("entries"), // TODO: Would be nice to support versions
 		bleveIndex:  bleveIndex,
 		batchSize:   batchSize,
 	}, nil
 }
 
-func (di *DictionaryImporter) ImportFromJSON(filename string) error {
+func (di *Database) ImportFromJSON(filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("error opening file: %v", err)
@@ -68,14 +66,14 @@ func (di *DictionaryImporter) ImportFromJSON(filename string) error {
 	errorsChan := make(chan error, 1)
 	var wg sync.WaitGroup
 
-	// Iniciar workers
+	// Init workers
 	numWorkers := 3
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
 		go di.ProcessEntries(entriesChan, errorsChan, &wg)
 	}
 
-	// Procesar entradas
+	// Process entries
 	count := 0
 	startTime := time.Now()
 
@@ -103,7 +101,7 @@ func (di *DictionaryImporter) ImportFromJSON(filename string) error {
 	return nil
 }
 
-func (di *DictionaryImporter) ProcessEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
+func (di *Database) ProcessEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	ctx := context.Background()
@@ -111,19 +109,19 @@ func (di *DictionaryImporter) ProcessEntries(entries <-chan JMdictWord, errors c
 	bleveBatch := di.bleveIndex.NewBatch()
 
 	for entry := range entries {
-		// TODO: Avoid save text fields here
+		// TODO: Set bson structs!
 		// Prepare MongoDB
 		model := mongo.NewInsertOneModel().SetDocument(entry)
 		mongoBatch = append(mongoBatch, model)
 
 		// Prepare Bleve
-		searchableEntry, err := entry.ToSearchable()
+		bleveEntry, err := entry.ToBleveEntry()
 		if err != nil {
 			errors <- err
 			return
 		}
 
-		if err := bleveBatch.Index(entry.ID, searchableEntry); err != nil {
+		if err := bleveBatch.Index(entry.ID, bleveEntry); err != nil {
 			errors <- fmt.Errorf("error indexing in Bleve: %v", err)
 			return
 		}
@@ -160,7 +158,7 @@ func (di *DictionaryImporter) ProcessEntries(entries <-chan JMdictWord, errors c
 	}
 }
 
-func (di *DictionaryImporter) Search(query string) ([]SearchableEntry, error) {
+func (di *Database) Search(query string) ([]BleveEntry, error) {
 	q := bleve.NewMatchQuery(query)
 
 	searchRequest := bleve.NewSearchRequest(q)
@@ -173,9 +171,9 @@ func (di *DictionaryImporter) Search(query string) ([]SearchableEntry, error) {
 		return nil, err
 	}
 
-	var results []SearchableEntry
+	var results []BleveEntry
 	for _, hit := range searchResults.Hits {
-		var entry SearchableEntry
+		var entry BleveEntry
 
 		// Serialize the map to a JSON byte slice
 		jsonBytes, err := json.Marshal(hit.Fields)

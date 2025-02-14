@@ -22,7 +22,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		Time: time.Now().String(),
 	}
 
-	tmpl, err := template.ParseFiles("./templates/index.html")
+	tmpl, err := template.ParseFiles("./template/index.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,7 +40,7 @@ func greetHandler(w http.ResponseWriter, r *http.Request) {
 		Time: time.Now().String(),
 	}
 
-	tmpl, err := template.ParseFiles("./templates/greet.html")
+	tmpl, err := template.ParseFiles("./template/greet.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -60,8 +60,6 @@ func RunServer() {
 			panic(err)
 		}
 	}()
-
-	// mongoClient.Database("dictionary").Collection("entries").InsertOne(ctx, bson.D{{Key: "name", Value: "pi"}, {Key: "value", Value: 3.14159}})
 
 	mux := http.NewServeMux()
 

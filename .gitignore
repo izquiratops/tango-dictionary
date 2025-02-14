@@ -1,2 +1,2 @@
-source
-dictionary.bleve
+database/jmdict/*.json
+*.bleve
