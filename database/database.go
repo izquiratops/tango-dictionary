@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -43,7 +44,7 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 
 	return &Database{
 		mongoClient: client,
-		collection:  client.Database("dictionary").Collection("entries"), // TODO: Would be nice to support versions
+		collection:  client.Database("dictionary").Collection("entries"),
 		bleveIndex:  bleveIndex,
 		batchSize:   batchSize,
 	}, nil
@@ -109,9 +110,14 @@ func (di *Database) ProcessEntries(entries <-chan JMdictWord, errors chan<- erro
 	bleveBatch := di.bleveIndex.NewBatch()
 
 	for entry := range entries {
-		// TODO: Set bson structs!
 		// Prepare MongoDB
-		model := mongo.NewInsertOneModel().SetDocument(entry)
+		bsonData, err := bson.Marshal(entry)
+		if err != nil {
+			errors <- fmt.Errorf("error marshalling to BSON: %v", err)
+			return
+		}
+
+		model := mongo.NewInsertOneModel().SetDocument(bsonData)
 		mongoBatch = append(mongoBatch, model)
 
 		// Prepare Bleve
@@ -182,7 +188,7 @@ func (di *Database) Search(query string) ([]BleveEntry, error) {
 			continue
 		}
 
-		// Unmarshal the JSON byte slice into the SearchableEntry struct using a custom unmarshaler
+		// Unmarshal the JSON byte slice into the BleveEntry struct using a custom unmarshaler
 		if err := json.Unmarshal(jsonBytes, &entry); err != nil {
 			fmt.Println("error unmarshalling entry:", err)
 			continue

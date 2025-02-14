@@ -16,7 +16,7 @@ else
 
     # Follow HTTP redirections (301) https://askubuntu.com/a/1036492
     # FILENAME=$(basename "$BROWSER_DOWNLOAD_URL")
-    curl -LO -H 'Accept-encoding: gzip' "$BROWSER_DOWNLOAD_URL"
+    curl -sLO -H 'Accept-encoding: gzip' "$BROWSER_DOWNLOAD_URL"
 fi
 
 read -p "Press any key to continue" x

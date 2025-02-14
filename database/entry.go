@@ -7,7 +7,7 @@ import (
 
 func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 	searchable := BleveEntry{
-		ID:       d.ID,
+		ID:       d.ID, // Ids not indexed
 		Kanji:    make([]string, 0),
 		Kana:     make([]string, 0),
 		Meanings: make([]string, 0),
@@ -70,7 +70,6 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 }
 
 func EnsureSlice(value interface{}) []string {
-	// TODO: Improve this function with reflect
 	switch v := value.(type) {
 	case []interface{}: // string[] comes as interface{}
 		result := make([]string, len(v))

@@ -10,73 +10,65 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// JMDICT
-
 type Language string
 
 type DictionaryMetadata[L Language] struct {
-	Version   string `json:"version"`
-	Languages []L    `json:"languages"`
-	DictDate  string `json:"dictDate"`
+	Version   string `json:"version" bson:"version"`
+	Languages []L    `json:"languages" bson:"languages"`
+	DictDate  string `json:"dictDate" bson:"dict_date"`
 }
 
 type JMdictDictionaryMetadata struct {
 	DictionaryMetadata[Language]
-	CommonOnly    bool              `json:"commonOnly"`
-	DictRevisions []string          `json:"dictRevisions"`
-	Tags          map[string]string `json:"tags"`
+	CommonOnly    bool              `json:"commonOnly" bson:"common_only"`
+	DictRevisions []string          `json:"dictRevisions" bson:"dict_revisions"`
+	Tags          map[string]string `json:"tags" bson:"tags"`
 }
 
 type JMdict struct {
 	JMdictDictionaryMetadata
-	Words []JMdictWord `json:"words"`
+	Words []JMdictWord `json:"words" bson:"words"`
 }
 
 type JMdictWord struct {
-	ID    string        `json:"id"`
-	Kanji []JMdictKanji `json:"kanji"`
-	Kana  []JMdictKana  `json:"kana"`
-	Sense []JMdictSense `json:"sense"`
+	ID    string        `json:"id" bson:"_id"`
+	Kanji []JMdictKanji `json:"kanji" bson:"kanji"`
+	Kana  []JMdictKana  `json:"kana" bson:"kana"`
+	Sense []JMdictSense `json:"sense" bson:"sense"`
 }
 
 type JMdictKanji struct {
-	Common bool     `json:"common"`
-	Text   string   `json:"text"`
-	Tags   []string `json:"tags"`
+	Common bool     `json:"common" bson:"common"`
+	Text   string   `json:"text" bson:"-"`
+	Tags   []string `json:"tags" bson:"tags"`
 }
 
 type JMdictKana struct {
-	Common         bool     `json:"common"`
-	Text           string   `json:"text"`
-	Tags           []string `json:"tags"`
-	AppliesToKanji []string `json:"appliesToKanji"`
+	Common         bool     `json:"common" bson:"common"`
+	Text           string   `json:"text" bson:"-"`
+	Tags           []string `json:"tags" bson:"tags"`
+	AppliesToKanji []string `json:"appliesToKanji" bson:"applies_to_kanji"`
 }
 
 type JMdictSense struct {
-	PartOfSpeech   []string               `json:"partOfSpeech"`
-	AppliesToKanji []string               `json:"appliesToKanji"`
-	AppliesToKana  []string               `json:"appliesToKana"`
-	Related        []Xref                 `json:"related"`
-	Antonym        []Xref                 `json:"antonym"`
-	Field          []string               `json:"field"`
-	Dialect        []string               `json:"dialect"`
-	Misc           []string               `json:"misc"`
-	Info           []string               `json:"info"`
-	LanguageSource []JMdictLanguageSource `json:"languageSource"`
-	Gloss          []JMdictGloss          `json:"gloss"`
-}
-
-type Xref struct {
-	Kanji      string `json:"kanji,omitempty"`
-	Kana       string `json:"kana,omitempty"`
-	SenseIndex int    `json:"senseIndex,omitempty"`
+	PartOfSpeech   []string               `json:"partOfSpeech" bson:"part_of_speech"`
+	AppliesToKanji []string               `json:"appliesToKanji" bson:"applies_to_kanji"`
+	AppliesToKana  []string               `json:"appliesToKana" bson:"applies_to_kana"`
+	Related        []Xref                 `json:"related" bson:"related"`
+	Antonym        []Xref                 `json:"antonym" bson:"antonym"`
+	Field          []string               `json:"field" bson:"field"`
+	Dialect        []string               `json:"dialect" bson:"dialect"`
+	Misc           []string               `json:"misc" bson:"misc"`
+	Info           []string               `json:"info" bson:"info"`
+	LanguageSource []JMdictLanguageSource `json:"languageSource" bson:"language_source"`
+	Gloss          []JMdictGloss          `json:"gloss" bson:"gloss"`
 }
 
 type JMdictLanguageSource struct {
-	Lang  Language `json:"lang"`
-	Full  bool     `json:"full"`
-	Wasei bool     `json:"wasei"`
-	Text  *string  `json:"text"`
+	Lang  Language `json:"lang" bson:"lang"`
+	Full  bool     `json:"full" bson:"full"`
+	Wasei bool     `json:"wasei" bson:"wasei"`
+	Text  *string  `json:"text" bson:"text,omitempty"`
 }
 
 type JMdictGender string
@@ -97,15 +89,13 @@ const (
 )
 
 type JMdictGloss struct {
-	Lang   Language         `json:"lang"`
-	Gender *JMdictGender    `json:"gender,omitempty"`
-	Type   *JMdictGlossType `json:"type,omitempty"`
-	Text   string           `json:"text"`
+	Lang   Language         `json:"lang" bson:"lang"`
+	Gender *JMdictGender    `json:"gender,omitempty" bson:"gender,omitempty"`
+	Type   *JMdictGlossType `json:"type,omitempty" bson:"type,omitempty"`
+	Text   string           `json:"text" bson:"-"`
 }
 
-// Used in JishoClone
-
-type BleveEntry struct {
+type BleveEntry struct { // Simplified version of JMdictWord
 	ID       string   `json:"id"`
 	Kanji    []string `json:"kanji"`
 	Kana     []string `json:"kana"`
