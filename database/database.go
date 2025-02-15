@@ -99,7 +99,44 @@ func (di *Database) ImportFromJSON(filename string) error {
 	return nil
 }
 
-func (di *Database) Search(query string) ([]BleveEntry, error) {
+func (di *Database) Search(query string) ([]JMdictWord, error) {
+	ids, err := di.runBleveQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Move this to use it like: func (model *JMdictWord) FindIds(ids []string) error {
+	// Retrieve all the data from MongoDB
+	filter := bson.M{
+		"_id": bson.M{
+			"$in": ids,
+		},
+	}
+
+	ctx := context.Background()
+	cursor, err := di.mongoCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx) // Ensure the cursor is closed
+
+	var results []JMdictWord
+	for cursor.Next(ctx) {
+		var result JMdictWord
+		if err := cursor.Decode(&result); err != nil {
+			return nil, err // Decoding errors
+		}
+		results = append(results, result)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err // Handle any error that occurred during iteration
+	}
+
+	return results, nil
+}
+
+func (di *Database) runBleveQuery(query string) ([]string, error) {
 	q := bleve.NewMatchQuery(query)
 
 	searchRequest := bleve.NewSearchRequest(q)
@@ -112,7 +149,7 @@ func (di *Database) Search(query string) ([]BleveEntry, error) {
 		return nil, err
 	}
 
-	var results []BleveEntry
+	var ids []string // List of Ids for every query hit
 	for _, hit := range searchResults.Hits {
 		var entry BleveEntry
 
@@ -129,10 +166,10 @@ func (di *Database) Search(query string) ([]BleveEntry, error) {
 			continue
 		}
 
-		results = append(results, entry)
+		ids = append(ids, entry.ID)
 	}
 
-	return results, nil
+	return ids, nil
 }
 
 func (di *Database) processEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {

@@ -34,13 +34,13 @@ type JMdictWord struct {
 
 type JMdictKanji struct {
 	Common bool     `json:"common" bson:"common"`
-	Text   string   `json:"text" bson:"-"`
+	Text   string   `json:"text" bson:"text"`
 	Tags   []string `json:"tags" bson:"tags"`
 }
 
 type JMdictKana struct {
 	Common         bool     `json:"common" bson:"common"`
-	Text           string   `json:"text" bson:"-"`
+	Text           string   `json:"text" bson:"text"`
 	Tags           []string `json:"tags" bson:"tags"`
 	AppliesToKanji []string `json:"appliesToKanji" bson:"applies_to_kanji"`
 }
@@ -87,5 +87,5 @@ type JMdictGloss struct {
 	Lang   Language         `json:"lang" bson:"lang"`
 	Gender *JMdictGender    `json:"gender,omitempty" bson:"gender,omitempty"`
 	Type   *JMdictGlossType `json:"type,omitempty" bson:"type,omitempty"`
-	Text   string           `json:"text" bson:"-"`
+	Text   string           `json:"text" bson:"text"`
 }
