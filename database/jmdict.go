@@ -1,14 +1,9 @@
+package main
+
 /*
  * Implements the same interfaces as jmdict-simplified 💕
  * https://scriptin.github.io/jmdict-simplified/interfaces/JMdict.html
  */
-
-package main
-
-import (
-	"github.com/blevesearch/bleve/v2"
-	"go.mongodb.org/mongo-driver/mongo"
-)
 
 type Language string
 
@@ -93,18 +88,4 @@ type JMdictGloss struct {
 	Gender *JMdictGender    `json:"gender,omitempty" bson:"gender,omitempty"`
 	Type   *JMdictGlossType `json:"type,omitempty" bson:"type,omitempty"`
 	Text   string           `json:"text" bson:"-"`
-}
-
-type BleveEntry struct { // Simplified version of JMdictWord
-	ID       string   `json:"id"`
-	Kanji    []string `json:"kanji"`
-	Kana     []string `json:"kana"`
-	Meanings []string `json:"meanings"`
-}
-
-type Database struct {
-	mongoClient *mongo.Client
-	collection  *mongo.Collection
-	bleveIndex  bleve.Index
-	batchSize   int
 }

@@ -3,10 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	JishoUtil "jisho-clone-database/util"
 )
 
+type BleveEntry struct { // Simplified version of JMdictWord
+	ID       string   `json:"id"`
+	Kanji    []string `json:"kanji"`
+	Kana     []string `json:"kana"`
+	Meanings []string `json:"meanings"`
+}
+
 func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
-	searchable := BleveEntry{
+	entry := BleveEntry{
 		ID:       d.ID, // Ids not indexed
 		Kanji:    make([]string, 0),
 		Kana:     make([]string, 0),
@@ -15,33 +23,33 @@ func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 
 	for _, k := range d.Kanji {
 		if k.Text == "" {
-			return searchable, fmt.Errorf("emtpy field at %v", d.ID)
+			return entry, fmt.Errorf("emtpy field at %v", d.ID)
 		}
 
-		searchable.Kanji = append(searchable.Kanji, k.Text)
+		entry.Kanji = append(entry.Kanji, k.Text)
 	}
 
 	for _, k := range d.Kana {
 		if k.Text == "" {
-			return searchable, fmt.Errorf("emtpy field at %v", d.ID)
+			return entry, fmt.Errorf("emtpy field at %v", d.ID)
 		}
 
-		searchable.Kana = append(searchable.Kana, k.Text)
+		entry.Kana = append(entry.Kana, k.Text)
 	}
 
 	for _, s := range d.Sense {
 		for _, g := range s.Gloss {
 			if g.Lang == "eng" {
 				if g.Text == "" {
-					return searchable, fmt.Errorf("emtpy field at %v", d.ID)
+					return entry, fmt.Errorf("emtpy field at %v", d.ID)
 				}
 
-				searchable.Meanings = append(searchable.Meanings, g.Text)
+				entry.Meanings = append(entry.Meanings, g.Text)
 			}
 		}
 	}
 
-	return searchable, nil
+	return entry, nil
 }
 
 func (be *BleveEntry) UnmarshalJSON(data []byte) error {
@@ -61,27 +69,10 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Convert Kanji, Kana, and Meanings to slices of strings
-	be.Kanji = EnsureSlice(temp.Kanji)
-	be.Kana = EnsureSlice(temp.Kana)
-	be.Meanings = EnsureSlice(temp.Meanings)
+	// Convert Kanji, Kana, and Meanings to []string
+	be.Kanji = JishoUtil.EnsureSlice(temp.Kanji)
+	be.Kana = JishoUtil.EnsureSlice(temp.Kana)
+	be.Meanings = JishoUtil.EnsureSlice(temp.Meanings)
 
 	return nil
-}
-
-func EnsureSlice(value interface{}) []string {
-	switch v := value.(type) {
-	case []interface{}: // string[] comes as interface{}
-		result := make([]string, len(v))
-		for i, val := range v {
-			if str, ok := val.(string); ok {
-				result[i] = str
-			}
-		}
-		return result
-	case string:
-		return []string{v}
-	default:
-		return []string{}
-	}
 }

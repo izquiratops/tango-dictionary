@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	JishoUtil "jisho-clone-database/util"
 	"testing"
 )
 
@@ -21,22 +22,34 @@ func TestUnmarshalXRef(t *testing.T) {
 		{
 			"[kanji, kana, senseIndex]",
 			`["日本", "にほん", 1]`,
-			Xref{Kanji: ToStringPtr("日本"), Kana: ToStringPtr("にほん"), SenseIndex: ToIntPtr(1.0)},
+			Xref{
+				Kanji:      JishoUtil.ToStringPtr("日本"),
+				Kana:       JishoUtil.ToStringPtr("にほん"),
+				SenseIndex: JishoUtil.ToIntPtr(1.0),
+			},
 		},
 		{
 			"[kanji, kana]",
 			`["世界", "せかい"]`,
-			Xref{Kanji: ToStringPtr("世界"), Kana: ToStringPtr("せかい")},
+			Xref{
+				Kanji: JishoUtil.ToStringPtr("世界"),
+				Kana:  JishoUtil.ToStringPtr("せかい"),
+			},
 		},
 		{
 			"[kanjiOrKana, senseIndex]",
 			`["日本", 2]`,
-			Xref{KanjiOrKana: ToStringPtr("日本"), SenseIndex: ToIntPtr(2.0)},
+			Xref{
+				KanjiOrKana: JishoUtil.ToStringPtr("日本"),
+				SenseIndex:  JishoUtil.ToIntPtr(2.0),
+			},
 		},
 		{
 			"[kanjiOrKana]",
 			`["こんにちは"]`,
-			Xref{KanjiOrKana: ToStringPtr("こんにちは")},
+			Xref{
+				KanjiOrKana: JishoUtil.ToStringPtr("こんにちは"),
+			},
 		},
 	}
 
@@ -48,19 +61,34 @@ func TestUnmarshalXRef(t *testing.T) {
 		}
 
 		if !EqualPointers(xRef.Kanji, testCase.expected.Kanji) {
-			t.Errorf("Unexpected Kanji value. Expected: %v, Got: %v", testCase.expected.Kanji, xRef.Kanji)
+			t.Errorf(
+				"Unexpected Kanji value. Expected: %v, Got: %v",
+				testCase.expected.Kanji,
+				xRef.Kanji,
+			)
 		}
 
 		if !EqualPointers(xRef.Kana, testCase.expected.Kana) {
-			t.Errorf("Unexpected Kana value. Expected: %v, Got: %v", testCase.expected.Kana, xRef.Kana)
+			t.Errorf(
+				"Unexpected Kana value. Expected: %v, Got: %v",
+				testCase.expected.Kana,
+				xRef.Kana,
+			)
 		}
 
 		if !EqualPointers(xRef.KanjiOrKana, testCase.expected.KanjiOrKana) {
-			t.Errorf("Unexpected KanjiOrKana value. Expected: %v, Got: %v", testCase.expected.KanjiOrKana, xRef.KanjiOrKana)
+			t.Errorf("Unexpected KanjiOrKana value. Expected: %v, Got: %v",
+				testCase.expected.KanjiOrKana,
+				xRef.KanjiOrKana,
+			)
 		}
 
 		if !EqualPointers(xRef.SenseIndex, testCase.expected.SenseIndex) {
-			t.Errorf("Unexpected SenseIndex value. Expected: %d, Got: %d", testCase.expected.SenseIndex, xRef.SenseIndex)
+			t.Errorf(
+				"Unexpected SenseIndex value. Expected: %d, Got: %d",
+				testCase.expected.SenseIndex,
+				xRef.SenseIndex,
+			)
 		}
 	}
 }

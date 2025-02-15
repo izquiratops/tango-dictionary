@@ -1,2 +1,3 @@
 database/jmdict/*.json
 *.bleve
+*.exe

@@ -15,7 +15,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type Database struct {
+	mongoClient     *mongo.Client
+	mongoCollection *mongo.Collection
+	bleveIndex      bleve.Index
+	batchSize       int
+}
+
 func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
+	// Setup Mongo
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
@@ -32,7 +40,7 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 
 	mapping.AddDocumentMapping("_default", documentMapping)
 
-	// Try to Open index, Create one if doesn't exist
+	// Try to open index, create one if doesn't exist
 	bleveIndex, err := bleve.New("jmdict.bleve", mapping)
 
 	if err != nil {
@@ -43,10 +51,10 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 	}
 
 	return &Database{
-		mongoClient: client,
-		collection:  client.Database("dictionary").Collection("entries"),
-		bleveIndex:  bleveIndex,
-		batchSize:   batchSize,
+		mongoClient:     client,
+		mongoCollection: client.Database("dictionary").Collection("entries"),
+		bleveIndex:      bleveIndex,
+		batchSize:       batchSize,
 	}, nil
 }
 
@@ -67,17 +75,13 @@ func (di *Database) ImportFromJSON(filename string) error {
 	errorsChan := make(chan error, 1)
 	var wg sync.WaitGroup
 
-	// Init workers
 	numWorkers := 3
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go di.ProcessEntries(entriesChan, errorsChan, &wg)
+		go di.processEntries(entriesChan, errorsChan, &wg)
 	}
 
-	// Process entries
-	count := 0
 	startTime := time.Now()
-
 	for _, entry := range source.Words {
 		select {
 		case err := <-errorsChan:
@@ -85,83 +89,14 @@ func (di *Database) ImportFromJSON(filename string) error {
 			return fmt.Errorf("worker error: %v", err)
 		default:
 			entriesChan <- entry
-			count++
-
-			if count%1000 == 0 {
-				elapsed := time.Since(startTime)
-				rate := float64(count) / elapsed.Seconds()
-				log.Printf("processed %d entries (%.2f entries/sec)", count, rate)
-			}
 		}
 	}
 
 	close(entriesChan)
 	wg.Wait()
 
-	log.Printf("import completed. Processed %d entries in %v", count, time.Since(startTime))
+	log.Printf("import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
 	return nil
-}
-
-func (di *Database) ProcessEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	ctx := context.Background()
-	mongoBatch := make([]mongo.WriteModel, 0, di.batchSize)
-	bleveBatch := di.bleveIndex.NewBatch()
-
-	for entry := range entries {
-		// Prepare MongoDB
-		bsonData, err := bson.Marshal(entry)
-		if err != nil {
-			errors <- fmt.Errorf("error marshalling to BSON: %v", err)
-			return
-		}
-
-		model := mongo.NewInsertOneModel().SetDocument(bsonData)
-		mongoBatch = append(mongoBatch, model)
-
-		// Prepare Bleve
-		bleveEntry, err := entry.ToBleveEntry()
-		if err != nil {
-			errors <- err
-			return
-		}
-
-		if err := bleveBatch.Index(entry.ID, bleveEntry); err != nil {
-			errors <- fmt.Errorf("error indexing in Bleve: %v", err)
-			return
-		}
-
-		if len(mongoBatch) >= di.batchSize {
-			// MongoDB bulk write
-			if _, err := di.collection.BulkWrite(ctx, mongoBatch); err != nil {
-				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
-				return
-			}
-
-			// Bleve batch write
-			if err := di.bleveIndex.Batch(bleveBatch); err != nil {
-				errors <- fmt.Errorf("error writing to Bleve: %v", err)
-				return
-			}
-
-			mongoBatch = mongoBatch[:0]
-			bleveBatch = di.bleveIndex.NewBatch()
-		}
-	}
-
-	// Procesar último batch
-	if len(mongoBatch) > 0 {
-		if _, err := di.collection.BulkWrite(ctx, mongoBatch); err != nil {
-			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
-			return
-		}
-
-		if err := di.bleveIndex.Batch(bleveBatch); err != nil {
-			errors <- fmt.Errorf("error writing final batch to Bleve: %v", err)
-			return
-		}
-	}
 }
 
 func (di *Database) Search(query string) ([]BleveEntry, error) {
@@ -198,4 +133,66 @@ func (di *Database) Search(query string) ([]BleveEntry, error) {
 	}
 
 	return results, nil
+}
+
+func (di *Database) processEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ctx := context.Background()
+	mongoBatch := make([]mongo.WriteModel, 0, di.batchSize)
+	bleveBatch := di.bleveIndex.NewBatch()
+
+	for entry := range entries {
+		// Prepare MongoDB
+		bsonData, err := bson.Marshal(entry)
+		if err != nil {
+			errors <- fmt.Errorf("error marshalling to BSON: %v", err)
+			return
+		}
+
+		model := mongo.NewInsertOneModel().SetDocument(bsonData)
+		mongoBatch = append(mongoBatch, model)
+
+		// Prepare Bleve
+		bleveEntry, err := entry.ToBleveEntry()
+		if err != nil {
+			errors <- err
+			return
+		}
+
+		if err := bleveBatch.Index(entry.ID, bleveEntry); err != nil {
+			errors <- fmt.Errorf("error indexing in Bleve: %v", err)
+			return
+		}
+
+		if len(mongoBatch) >= di.batchSize {
+			// MongoDB bulk write
+			if _, err := di.mongoCollection.BulkWrite(ctx, mongoBatch); err != nil {
+				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
+				return
+			}
+
+			// Bleve batch write
+			if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+				errors <- fmt.Errorf("error writing to Bleve: %v", err)
+				return
+			}
+
+			mongoBatch = mongoBatch[:0]
+			bleveBatch = di.bleveIndex.NewBatch()
+		}
+	}
+
+	// Process last batch. This runs the batch if mongoBatch never reached the batchSize threshold
+	if len(mongoBatch) > 0 {
+		if _, err := di.mongoCollection.BulkWrite(ctx, mongoBatch); err != nil {
+			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
+			return
+		}
+
+		if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+			errors <- fmt.Errorf("error writing final batch to Bleve: %v", err)
+			return
+		}
+	}
 }

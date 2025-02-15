@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	JishoUtil "jisho-clone-database/util"
 )
 
 type Xref struct {
@@ -20,24 +21,24 @@ func (x *Xref) UnmarshalJSON(data []byte) error {
 
 	if fullRef[2] != nil {
 		// 1. Try to unmarshal as [kanji, kana, senseIndex]
-		x.Kanji = ToStringPtr(fullRef[0])
-		x.Kana = ToStringPtr(fullRef[1])
-		x.SenseIndex = ToIntPtr(fullRef[2])
+		x.Kanji = JishoUtil.ToStringPtr(fullRef[0])
+		x.Kana = JishoUtil.ToStringPtr(fullRef[1])
+		x.SenseIndex = JishoUtil.ToIntPtr(fullRef[2])
 		return nil
 	}
 
 	if fullRef[1] != nil {
-		kana := ToStringPtr(fullRef[1])
-		senseIndex := ToIntPtr(fullRef[1])
+		kana := JishoUtil.ToStringPtr(fullRef[1])
+		senseIndex := JishoUtil.ToIntPtr(fullRef[1])
 
 		if kana != nil {
 			// 2. Try to unmarshal as [kanji, kana]
-			x.Kanji = ToStringPtr(fullRef[0])
+			x.Kanji = JishoUtil.ToStringPtr(fullRef[0])
 			x.Kana = kana
 			return nil
 		} else if senseIndex != nil {
 			// 3. Try to unmarshal as [kanjiOrKana, senseIndex]
-			x.KanjiOrKana = ToStringPtr(fullRef[0])
+			x.KanjiOrKana = JishoUtil.ToStringPtr(fullRef[0])
 			x.SenseIndex = senseIndex
 			return nil
 		}
@@ -45,24 +46,9 @@ func (x *Xref) UnmarshalJSON(data []byte) error {
 
 	if fullRef[0] != nil {
 		// 4. Try to unmarshal as [kanjiOrKana]
-		x.KanjiOrKana = ToStringPtr(fullRef[0])
+		x.KanjiOrKana = JishoUtil.ToStringPtr(fullRef[0])
 		return nil
 	}
 
 	return fmt.Errorf("invalid JSON format for Xref")
-}
-
-func ToStringPtr(v interface{}) *string {
-	if str, ok := v.(string); ok {
-		return &str
-	}
-	return nil
-}
-
-func ToIntPtr(v interface{}) *int {
-	if floatNum, ok := v.(float64); ok {
-		num := int(floatNum)
-		return &num
-	}
-	return nil
 }
