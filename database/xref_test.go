@@ -2,7 +2,7 @@ package database
 
 import (
 	"encoding/json"
-	TangoUtil "tango/util"
+	"tango/util"
 	"testing"
 )
 
@@ -16,32 +16,32 @@ func TestUnmarshalXRef(t *testing.T) {
 			"[kanji, kana, senseIndex]",
 			`["日本", "にほん", 1]`,
 			Xref{
-				Kanji:      TangoUtil.ToStringPtr("日本"),
-				Kana:       TangoUtil.ToStringPtr("にほん"),
-				SenseIndex: TangoUtil.ToIntPtr(1.0),
+				Kanji:      util.ToStringPtr("日本"),
+				Kana:       util.ToStringPtr("にほん"),
+				SenseIndex: util.ToIntPtr(1.0),
 			},
 		},
 		{
 			"[kanji, kana]",
 			`["世界", "せかい"]`,
 			Xref{
-				Kanji: TangoUtil.ToStringPtr("世界"),
-				Kana:  TangoUtil.ToStringPtr("せかい"),
+				Kanji: util.ToStringPtr("世界"),
+				Kana:  util.ToStringPtr("せかい"),
 			},
 		},
 		{
 			"[kanjiOrKana, senseIndex]",
 			`["日本", 2]`,
 			Xref{
-				KanjiOrKana: TangoUtil.ToStringPtr("日本"),
-				SenseIndex:  TangoUtil.ToIntPtr(2.0),
+				KanjiOrKana: util.ToStringPtr("日本"),
+				SenseIndex:  util.ToIntPtr(2.0),
 			},
 		},
 		{
 			"[kanjiOrKana]",
 			`["こんにちは"]`,
 			Xref{
-				KanjiOrKana: TangoUtil.ToStringPtr("こんにちは"),
+				KanjiOrKana: util.ToStringPtr("こんにちは"),
 			},
 		},
 	}
@@ -53,7 +53,7 @@ func TestUnmarshalXRef(t *testing.T) {
 			t.Errorf("Error unmarshalling JSON: %v", err)
 		}
 
-		if !TangoUtil.EqualPointers(xRef.Kanji, testCase.expected.Kanji) {
+		if !util.EqualPointers(xRef.Kanji, testCase.expected.Kanji) {
 			t.Errorf(
 				"Unexpected Kanji value. Expected: %v, Got: %v",
 				testCase.expected.Kanji,
@@ -61,7 +61,7 @@ func TestUnmarshalXRef(t *testing.T) {
 			)
 		}
 
-		if !TangoUtil.EqualPointers(xRef.Kana, testCase.expected.Kana) {
+		if !util.EqualPointers(xRef.Kana, testCase.expected.Kana) {
 			t.Errorf(
 				"Unexpected Kana value. Expected: %v, Got: %v",
 				testCase.expected.Kana,
@@ -69,14 +69,14 @@ func TestUnmarshalXRef(t *testing.T) {
 			)
 		}
 
-		if !TangoUtil.EqualPointers(xRef.KanjiOrKana, testCase.expected.KanjiOrKana) {
+		if !util.EqualPointers(xRef.KanjiOrKana, testCase.expected.KanjiOrKana) {
 			t.Errorf("Unexpected KanjiOrKana value. Expected: %v, Got: %v",
 				testCase.expected.KanjiOrKana,
 				xRef.KanjiOrKana,
 			)
 		}
 
-		if !TangoUtil.EqualPointers(xRef.SenseIndex, testCase.expected.SenseIndex) {
+		if !util.EqualPointers(xRef.SenseIndex, testCase.expected.SenseIndex) {
 			t.Errorf(
 				"Unexpected SenseIndex value. Expected: %d, Got: %d",
 				testCase.expected.SenseIndex,

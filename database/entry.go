@@ -3,7 +3,7 @@ package database
 import (
 	"encoding/json"
 	"fmt"
-	TangoUtil "tango/util"
+	"tango/util"
 )
 
 type BleveEntry struct { // Simplified version of JMdictWord
@@ -70,9 +70,9 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 	}
 
 	// Convert Kanji, Kana, and Meanings to []string
-	be.Kanji = TangoUtil.EnsureSlice(temp.Kanji)
-	be.Kana = TangoUtil.EnsureSlice(temp.Kana)
-	be.Meanings = TangoUtil.EnsureSlice(temp.Meanings)
+	be.Kanji = util.EnsureSlice(temp.Kanji)
+	be.Kana = util.EnsureSlice(temp.Kana)
+	be.Meanings = util.EnsureSlice(temp.Meanings)
 
 	return nil
 }

@@ -46,10 +46,11 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 	mapping.AddDocumentMapping("_default", documentMapping)
 
 	// Try to open index, create one if doesn't exist
-	bleveIndex, err := bleve.New("jmdict.bleve", mapping)
+	// TODO: path 😔
+	bleveIndex, err := bleve.New("./database/jmdict.bleve", mapping)
 
 	if err != nil {
-		bleveIndex, err = bleve.Open("jmdict.bleve")
+		bleveIndex, err = bleve.Open("./database/jmdict.bleve")
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}

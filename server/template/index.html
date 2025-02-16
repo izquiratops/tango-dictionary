@@ -2,13 +2,13 @@
 <html>
 <head>
     <title>Página Principal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sakura.css/css/sakura.css" type="text/css">
 </head>
 <body>
-    <h1>Bienvenido, {{.Name}}!</h1>
-    <p>Hora actual: {{.Time}}</p>
-    <form action="/greet" method="get">
-        <input type="text" name="name" placeholder="Tu nombre">
-        <input type="submit" value="Saludar">
+    <h1>Tango 🗾</h1>
+    <form action="/search" method="get">
+        <input type="text" name="query" placeholder="English or Japanse">
+        <input type="submit" value="Search">
     </form>
 </body>
 </html>
