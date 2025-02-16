@@ -1,4 +1,4 @@
-package main
+package database
 
 /*
  * Implements the same interfaces as jmdict-simplified 💕

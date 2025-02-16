@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"context"
@@ -13,6 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const (
+	defaultSearchSize = 20
+	defaultSearchFrom = 0
 )
 
 type Database struct {
@@ -95,42 +100,21 @@ func (di *Database) ImportFromJSON(filename string) error {
 	close(entriesChan)
 	wg.Wait()
 
-	log.Printf("import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
+	log.Printf("Import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
 	return nil
 }
 
 func (di *Database) Search(query string) ([]JMdictWord, error) {
 	ids, err := di.runBleveQuery(query)
 	if err != nil {
+		log.Printf("Failed to run Bleve query: %v", err)
 		return nil, err
 	}
 
-	// TODO: Move this to use it like: func (model *JMdictWord) FindIds(ids []string) error {
-	// Retrieve all the data from MongoDB
-	filter := bson.M{
-		"_id": bson.M{
-			"$in": ids,
-		},
-	}
-
-	ctx := context.Background()
-	cursor, err := di.mongoCollection.Find(ctx, filter)
+	results, err := di.runMongoFind(ids)
 	if err != nil {
+		log.Printf("Failed to run MongoDB find: %v", err)
 		return nil, err
-	}
-	defer cursor.Close(ctx) // Ensure the cursor is closed
-
-	var results []JMdictWord
-	for cursor.Next(ctx) {
-		var result JMdictWord
-		if err := cursor.Decode(&result); err != nil {
-			return nil, err // Decoding errors
-		}
-		results = append(results, result)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, err // Handle any error that occurred during iteration
 	}
 
 	return results, nil
@@ -141,12 +125,12 @@ func (di *Database) runBleveQuery(query string) ([]string, error) {
 
 	searchRequest := bleve.NewSearchRequest(q)
 	searchRequest.Fields = []string{"id", "kana", "kanji", "meanings"}
-	searchRequest.Size = 20
-	searchRequest.From = 0
+	searchRequest.Size = defaultSearchSize
+	searchRequest.From = defaultSearchFrom
 
 	searchResults, err := di.bleveIndex.Search(searchRequest)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to search Bleve index: %w", err)
 	}
 
 	var ids []string // List of Ids for every query hit
@@ -170,6 +154,38 @@ func (di *Database) runBleveQuery(query string) ([]string, error) {
 	}
 
 	return ids, nil
+}
+
+func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
+	ctx := context.Background()
+
+	f := bson.M{
+		"_id": bson.M{
+			"$in": ids,
+		},
+	}
+
+	cursor, err := di.mongoCollection.Find(ctx, f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var results []JMdictWord
+
+	for cursor.Next(ctx) {
+		var result JMdictWord
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("failed to decode document: %w", err)
+		}
+		results = append(results, result)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return results, nil
 }
 
 func (di *Database) processEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {

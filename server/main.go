@@ -1,14 +1,10 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type UserData struct {
@@ -22,7 +18,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		Time: time.Now().String(),
 	}
 
-	tmpl, err := template.ParseFiles("./template/index.html")
+	tmpl, err := template.ParseFiles("./server/template/index.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,7 +36,7 @@ func greetHandler(w http.ResponseWriter, r *http.Request) {
 		Time: time.Now().String(),
 	}
 
-	tmpl, err := template.ParseFiles("./template/greet.html")
+	tmpl, err := template.ParseFiles("./server/template/greet.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,14 +49,6 @@ func greetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RunServer() {
-	ctx := context.Background()
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-	defer func() {
-		if err = mongoClient.Disconnect(ctx); err != nil {
-			panic(err)
-		}
-	}()
-
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", indexHandler)

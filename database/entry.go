@@ -1,9 +1,9 @@
-package main
+package database
 
 import (
 	"encoding/json"
 	"fmt"
-	JishoUtil "jisho-clone-database/util"
+	TangoUtil "tango/util"
 )
 
 type BleveEntry struct { // Simplified version of JMdictWord
@@ -70,9 +70,9 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 	}
 
 	// Convert Kanji, Kana, and Meanings to []string
-	be.Kanji = JishoUtil.EnsureSlice(temp.Kanji)
-	be.Kana = JishoUtil.EnsureSlice(temp.Kana)
-	be.Meanings = JishoUtil.EnsureSlice(temp.Meanings)
+	be.Kanji = TangoUtil.EnsureSlice(temp.Kanji)
+	be.Kana = TangoUtil.EnsureSlice(temp.Kana)
+	be.Meanings = TangoUtil.EnsureSlice(temp.Meanings)
 
 	return nil
 }
