@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -110,6 +111,12 @@ func (di *Database) Search(query string) ([]JMdictWord, error) {
 	if err != nil {
 		log.Printf("Failed to run Bleve query: %v", err)
 		return nil, err
+	}
+
+	if len(ids) == 0 {
+		// Define a specific error for empty results
+		emptyResultsErr := errors.New("no results found")
+		return nil, emptyResultsErr
 	}
 
 	results, err := di.runMongoFind(ids)

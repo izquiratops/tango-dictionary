@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"tango/database"
 )
 
@@ -22,9 +23,28 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 
-	results, err := db.Search(query)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Parse HTML based on the response of the database search
+	var tmpl *template.Template
+	var parseErr error
+
+	results, searchErr := db.Search(query)
+	if searchErr == nil {
+		// 200 OK, list with valid content
+		tmpl, parseErr = template.ParseFiles("./server/template/results.html")
+	} else {
+		switch {
+		case strings.Contains(searchErr.Error(), "no results found"):
+			// 200 OK, BUT empty list of results
+			tmpl, parseErr = template.ParseFiles("./server/template/not_found.html")
+		default:
+			// 500 NOK, searchErr is any Errorf throw by Bleve or Mongo
+			http.Error(w, searchErr.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if parseErr != nil {
+		http.Error(w, parseErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -33,16 +53,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		Results: results,
 	}
 
-	// TODO: path 😔
-	tmpl, err := template.ParseFiles("./server/template/results.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	executeErr := tmpl.Execute(w, data)
+	if executeErr != nil {
+		http.Error(w, executeErr.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -58,6 +71,14 @@ func RunServer() {
 	mux.HandleFunc("GET /", indexHandler)
 	mux.HandleFunc("GET /search", searchHandler)
 
+	// TODO: serve stylesheet
+	// Serve static files
+	staticDir := http.Dir("./server/static")
+	staticServer := http.FileServer(staticDir)
+	http.Handle("/static/", http.StripPrefix("/static/", staticServer))
+
 	fmt.Println("Starting server on port 8080")
-	http.ListenAndServe(":8080", mux)
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }

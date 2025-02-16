@@ -2,13 +2,46 @@
 <html>
 <head>
     <title>Results</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sakura.css/css/sakura.css" type="text/css">
+    <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <h1>Search: {{.Query}}</h1>
+    <h1>Tango 🗾</h1>
     <a href="/">Home</a>
-    {{range .Results}}
-        <p>status: {{.ID}}</p>
-    {{end}}
+    <form action="/search" method="get">
+        <input type="text" name="query" placeholder="English or Japanse">
+        <input type="submit" value="Search">
+    </form>
+    <h3>Search: {{.Query}}</h3>
+    <ul>
+        {{range .Results}}
+        <li>
+        <span>{{.ID}}</span>
+        {{if .Kanji}}
+        <ul>
+            {{range .Kanji}}
+            <li>{{.Text}}</li>
+            {{end}}
+        </ul>
+        {{else if .Kana}}
+        <ul>
+            {{range .Kana}}
+            <li>{{.Text}}</li>
+            {{end}}
+        </ul>
+        {{end}} <!-- if .Kanji else if .Kana -->
+        <div>
+            {{if .Sense}}
+            {{range .Sense}}
+            {{if .Gloss}}
+            {{range .Gloss}}
+            <span>{{.Text}},</span>
+            {{end}} <!-- range .Gloss -->
+            {{end}} <!-- if .Gloss -->
+            {{end}} <!-- range .Sense -->
+            {{end}} <!-- if .Sense -->
+        </div>
+        </li>
+        {{end}} <!-- range .Results -->
+    </ul>
 </body>
 </html>
