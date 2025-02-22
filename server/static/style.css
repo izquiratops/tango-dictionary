@@ -1,12 +1,31 @@
+:root {
+    --space-xxs: 2px;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-xxl: 40px;
+}
+
+@font-face {
+    font-family: NotoSansJP;
+    src: url("NotoSansJP.ttf");
+}
+
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
+    background: #E0F5E8;
+    font-family: NotoSansJP, serif;
+    font-weight: 400;
+    font-style: normal;
 }
 
 body {
-    margin: 32px auto;
-    padding: 0 12px;
+    margin: var(--space-xl) auto;
+    padding: 0 var(--space-md);
     max-width: 720px;
     font-size: 18px;
     line-height: 1.6;
@@ -16,6 +35,25 @@ h1, h2, h3 {
     line-height: 1.2;
 }
 
+form {
+    display: flex;
+    gap: var(--space-sm);
+
+    input[type=text] {
+        flex: 1;
+        padding: var(--space-xs);
+    }
+}
+
+#github-mark {
+    height: 1em;
+    margin-inline-start: var(--space-xs);
+}
+
 .result-list {
-    padding-bottom: 72px;
+    padding-bottom: var(--space-xxl);
+}
+
+.about {
+    margin: 12px 0;
 }

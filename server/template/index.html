@@ -5,10 +5,19 @@
     <link rel="stylesheet" href="./static/style.css">
 </head>
 <body>
-    <h1>Tango 🗾</h1>
+    <h1>Tango 🎋</h1>
     <form action="/search" method="get">
-        <input type="text" name="query" placeholder="English or Japanse">
+        <input type="text" name="query" placeholder="English or Japanse" required>
         <input type="submit" value="Search">
     </form>
+    <section class="about">
+        <p>
+            This website is a lightweight Japanese-English dictionary.<br> 
+            It's far from being a good one but my goal is to develop something like <a href="https://jisho.org/" target="_blank" rel="noopener noreferrer">Jisho.org</a>.
+        </p>
+        <p>
+            The code is open-sourced on my <a href="https://github.com/izquiratops/tango" target="_blank" rel="noopener noreferrer">Github</a><img id="github-mark" src="./static/github-mark.svg">
+        </p>
+    </section>
 </body>
 </html>

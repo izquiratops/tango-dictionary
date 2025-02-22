@@ -7,18 +7,22 @@ import (
 )
 
 type BleveEntry struct { // Simplified version of JMdictWord
-	ID       string   `json:"id"`
-	Kanji    []string `json:"kanji"`
-	Kana     []string `json:"kana"`
-	Meanings []string `json:"meanings"`
+	ID         string   `json:"id"`
+	KanjiExact []string `json:"kanji_exact"`
+	KanjiChar  []string `json:"kanji_char"`
+	KanaExact  []string `json:"kana_exact"`
+	KanaChar   []string `json:"kana_char"`
+	Meanings   []string `json:"meanings"`
 }
 
 func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 	entry := BleveEntry{
-		ID:       d.ID, // Ids not indexed
-		Kanji:    make([]string, 0),
-		Kana:     make([]string, 0),
-		Meanings: make([]string, 0),
+		ID:         d.ID, // ID not indexed
+		KanjiExact: make([]string, 0),
+		KanjiChar:  make([]string, 0),
+		KanaExact:  make([]string, 0),
+		KanaChar:   make([]string, 0),
+		Meanings:   make([]string, 0),
 	}
 
 	for _, k := range d.Kanji {
@@ -26,7 +30,8 @@ func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 			return entry, fmt.Errorf("emtpy field at %v", d.ID)
 		}
 
-		entry.Kanji = append(entry.Kanji, k.Text)
+		entry.KanjiExact = append(entry.KanjiExact, k.Text)
+		entry.KanjiChar = append(entry.KanjiChar, k.Text)
 	}
 
 	for _, k := range d.Kana {
@@ -34,7 +39,8 @@ func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 			return entry, fmt.Errorf("emtpy field at %v", d.ID)
 		}
 
-		entry.Kana = append(entry.Kana, k.Text)
+		entry.KanaExact = append(entry.KanaExact, k.Text)
+		entry.KanaChar = append(entry.KanaChar, k.Text)
 	}
 
 	for _, s := range d.Sense {
@@ -56,9 +62,11 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 	// Define a temporary struct to unmarshal the JSON data
 	type Alias BleveEntry
 	temp := &struct {
-		Kanji    interface{} `json:"kanji"`
-		Kana     interface{} `json:"kana"`
-		Meanings interface{} `json:"meanings"`
+		KanjiExact interface{} `json:"kanji_exact"`
+		KanjiChar  interface{} `json:"kanji_char"`
+		KanaExact  interface{} `json:"kana_exact"`
+		KanaChar   interface{} `json:"kana_char"`
+		Meanings   interface{} `json:"meanings"`
 		*Alias
 	}{
 		Alias: (*Alias)(be),
@@ -70,8 +78,10 @@ func (be *BleveEntry) UnmarshalJSON(data []byte) error {
 	}
 
 	// Convert Kanji, Kana, and Meanings to []string
-	be.Kanji = util.EnsureSlice(temp.Kanji)
-	be.Kana = util.EnsureSlice(temp.Kana)
+	be.KanjiExact = util.EnsureSlice(temp.KanjiExact)
+	be.KanjiChar = util.EnsureSlice(temp.KanjiChar)
+	be.KanaExact = util.EnsureSlice(temp.KanaExact)
+	be.KanaChar = util.EnsureSlice(temp.KanaChar)
 	be.Meanings = util.EnsureSlice(temp.Meanings)
 
 	return nil

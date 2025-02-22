@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+	bleveSearch "github.com/blevesearch/bleve/v2/search/query"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -47,18 +48,34 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	}
 
 	// Setup Bleve
-	mapping := bleve.NewIndexMapping()
-
+	indexMapping := bleve.NewIndexMapping()
 	documentMapping := bleve.NewDocumentMapping()
-	documentMapping.AddFieldMappingsAt("kanji", bleve.NewTextFieldMapping())
-	documentMapping.AddFieldMappingsAt("kana", bleve.NewTextFieldMapping())
-	documentMapping.AddFieldMappingsAt("meanings", bleve.NewTextFieldMapping())
 
-	mapping.AddDocumentMapping("_default", documentMapping)
+	// Kana
+	kanaCharMapping := bleve.NewTextFieldMapping()
+
+	kanaExactMapping := bleve.NewTextFieldMapping()
+	kanaExactMapping.Analyzer = "keyword" // This will treat the entire field as a single token
+
+	// Kanji
+	kanjiCharMapping := bleve.NewTextFieldMapping()
+
+	kanjiExactMapping := bleve.NewTextFieldMapping()
+	kanjiExactMapping.Analyzer = "keyword" // This will treat the entire field as a single token
+
+	// Regular text analyzer for meanings
+	meaningsMapping := bleve.NewTextFieldMapping()
+
+	documentMapping.AddFieldMappingsAt("kana_exact", kanaExactMapping)
+	documentMapping.AddFieldMappingsAt("kana_char", kanaCharMapping)
+	documentMapping.AddFieldMappingsAt("kanji_exact", kanjiExactMapping)
+	documentMapping.AddFieldMappingsAt("kanji_char", kanjiCharMapping)
+	documentMapping.AddFieldMappingsAt("meanings", meaningsMapping)
+
+	indexMapping.AddDocumentMapping("_default", documentMapping)
 
 	// Try to open index, create one if doesn't exist
-	bleveIndex, err := bleve.New(blevePath, mapping)
-
+	bleveIndex, err := bleve.New(blevePath, indexMapping)
 	if err != nil {
 		bleveIndex, err = bleve.Open(blevePath)
 		if err != nil {
@@ -137,11 +154,48 @@ func (di *Database) Search(query string) ([]JMdictWord, error) {
 	return results, nil
 }
 
-func (di *Database) runBleveQuery(query string) ([]string, error) {
-	q := bleve.NewMatchQuery(query)
+func NewTermQueryWithBoost(field string, term string, boost float64) *bleveSearch.TermQuery {
+	query := bleve.NewTermQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
 
-	searchRequest := bleve.NewSearchRequest(q)
-	searchRequest.Fields = []string{"id", "kana", "kanji", "meanings"}
+func NewMatchQueryWithBoost(field string, term string, boost float64) *bleveSearch.MatchQuery {
+	query := bleve.NewMatchQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
+
+func CreateBooleanQueryForField(query string, exactField string, charField string) *bleveSearch.BooleanQuery {
+	booleanQuery := bleve.NewBooleanQuery()
+
+	exactQuery := NewTermQueryWithBoost(exactField, query, 10.0)
+	booleanQuery.AddShould(exactQuery)
+
+	charQuery := NewMatchQueryWithBoost(charField, query, 1.0)
+	disjunctionQuery := bleve.NewDisjunctionQuery(charQuery)
+	disjunctionQuery.SetMin(1)
+	booleanQuery.AddShould(disjunctionQuery)
+
+	return booleanQuery
+}
+
+func (di *Database) runBleveQuery(query string) ([]string, error) {
+	meaningsQuery := bleve.NewTermQuery(query)
+	meaningsQuery.SetField("meanings")
+
+	kanaBooleanQuery := CreateBooleanQueryForField(query, "kana_exact", "kana_char")
+	kanjiBooleanQuery := CreateBooleanQueryForField(query, "kanji_exact", "kanji_char")
+
+	booleanQuery := bleve.NewBooleanQuery()
+	booleanQuery.AddShould(meaningsQuery)
+	booleanQuery.AddShould(kanaBooleanQuery)
+	booleanQuery.AddShould(kanjiBooleanQuery)
+
+	searchRequest := bleve.NewSearchRequest(booleanQuery)
+	searchRequest.Fields = []string{"id", "kana_exact", "kana_char", "kanji_exact", "kanji_char", "meanings"}
 	searchRequest.Size = defaultSearchSize
 	searchRequest.From = defaultSearchFrom
 
