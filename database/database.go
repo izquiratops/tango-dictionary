@@ -30,7 +30,15 @@ type Database struct {
 	batchSize       int
 }
 
-func NewDatabase(mongoURI string, indexPath string, batchSize int) (*Database, error) {
+// 'indexFolder' makes it easier to run this method from Server and also from Unit test, where paths are different.
+func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSize int) (*Database, error) {
+	// Set Bleve path
+	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
+	blevePath := filepath.Join(indexFolder, bleveFilename)
+
+	// Set Mongo collection name
+	mongoCollectionName := fmt.Sprintf("jmdict_%v", dbVersion)
+
 	// Setup Mongo
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
@@ -49,10 +57,10 @@ func NewDatabase(mongoURI string, indexPath string, batchSize int) (*Database, e
 	mapping.AddDocumentMapping("_default", documentMapping)
 
 	// Try to open index, create one if doesn't exist
-	bleveIndex, err := bleve.New(indexPath, mapping)
+	bleveIndex, err := bleve.New(blevePath, mapping)
 
 	if err != nil {
-		bleveIndex, err = bleve.Open(indexPath)
+		bleveIndex, err = bleve.Open(blevePath)
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}
@@ -60,14 +68,13 @@ func NewDatabase(mongoURI string, indexPath string, batchSize int) (*Database, e
 
 	return &Database{
 		mongoClient:     client,
-		mongoCollection: client.Database("dictionary").Collection("entries"),
+		mongoCollection: client.Database("dictionary").Collection(mongoCollectionName),
 		bleveIndex:      bleveIndex,
 		batchSize:       batchSize,
 	}, nil
 }
 
-func (di *Database) ImportFromJSON(filename string) error {
-	path := filepath.Join("..", "jmdict", filename)
+func (di *Database) ImportFromJSON(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("error opening file: %v", err)

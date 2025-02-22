@@ -59,11 +59,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RunServer() {
+func RunServer(dbVersion string) error {
 	var err error
 	db, err = database.NewDatabase(
 		"mongodb://localhost:27017",
-		"./database/jmdict.bleve",
+		"./database",
+		dbVersion,
 		1000,
 	)
 	if err != nil {
@@ -85,4 +86,6 @@ func RunServer() {
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+
+	return nil
 }
