@@ -42,5 +42,5 @@ func TestSearch(t *testing.T) {
 		t.Errorf("Search() error = %v", err)
 	}
 
-	fmt.Printf("Done! %v", results)
+	t.Logf("Done! %v", results)
 }
