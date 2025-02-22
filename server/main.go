@@ -61,7 +61,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 func RunServer() {
 	var err error
-	db, err = database.NewDatabase("mongodb://localhost:27017", 1000)
+	db, err = database.NewDatabase(
+		"mongodb://localhost:27017",
+		"./database/jmdict.bleve",
+		1000,
+	)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mongo database: %v", err)
 	}
@@ -73,9 +77,9 @@ func RunServer() {
 
 	// TODO: serve stylesheet
 	// Serve static files
-	staticDir := http.Dir("./server/static")
-	staticServer := http.FileServer(staticDir)
-	http.Handle("/static/", http.StripPrefix("/static/", staticServer))
+	// staticDir := http.Dir("./server/static")
+	// staticServer := http.FileServer(staticDir)
+	// http.Handle("/static/", http.StripPrefix("/static/", staticServer))
 
 	fmt.Println("Starting server on port 8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {

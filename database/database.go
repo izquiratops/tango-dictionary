@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -28,7 +30,7 @@ type Database struct {
 	batchSize       int
 }
 
-func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
+func NewDatabase(mongoURI string, indexPath string, batchSize int) (*Database, error) {
 	// Setup Mongo
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
@@ -47,11 +49,10 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 	mapping.AddDocumentMapping("_default", documentMapping)
 
 	// Try to open index, create one if doesn't exist
-	// TODO: path 😔
-	bleveIndex, err := bleve.New("./database/jmdict.bleve", mapping)
+	bleveIndex, err := bleve.New(indexPath, mapping)
 
 	if err != nil {
-		bleveIndex, err = bleve.Open("./database/jmdict.bleve")
+		bleveIndex, err = bleve.Open(indexPath)
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}
@@ -66,7 +67,8 @@ func NewDatabase(mongoURI string, batchSize int) (*Database, error) {
 }
 
 func (di *Database) ImportFromJSON(filename string) error {
-	file, err := os.Open(filename)
+	path := filepath.Join("..", "jmdict", filename)
+	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("error opening file: %v", err)
 	}
@@ -179,8 +181,8 @@ func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
 	}
 	defer cursor.Close(ctx)
 
+	// Iter through the Mongo cursor to fetch the returned Find data
 	var results []JMdictWord
-
 	for cursor.Next(ctx) {
 		var result JMdictWord
 		if err := cursor.Decode(&result); err != nil {
@@ -192,6 +194,19 @@ func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
 	if err := cursor.Err(); err != nil {
 		return nil, fmt.Errorf("cursor error: %w", err)
 	}
+
+	// Sort the results based on the original order of IDs
+	sort.SliceStable(results, func(i, j int) bool {
+		for _, id := range ids {
+			if results[i].ID == id {
+				return true
+			}
+			if results[j].ID == id {
+				return false
+			}
+		}
+		return false // This should never be reached if all IDs are found
+	})
 
 	return results, nil
 }
