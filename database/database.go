@@ -6,14 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"sort"
 	"sync"
-	"time"
+	"tango/model"
+	"tango/util"
 
 	"github.com/blevesearch/bleve/v2"
-	bleveSearch "github.com/blevesearch/bleve/v2/search/query"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -33,11 +32,9 @@ type Database struct {
 
 // 'indexFolder' makes it easier to run this method from Server and also from Unit test, where paths are different.
 func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSize int) (*Database, error) {
-	// Set Bleve path
+	// Setup version names
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
 	blevePath := filepath.Join(indexFolder, bleveFilename)
-
-	// Set Mongo collection name
 	mongoCollectionName := fmt.Sprintf("jmdict_%v", dbVersion)
 
 	// Setup Mongo
@@ -91,48 +88,7 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	}, nil
 }
 
-func (di *Database) ImportFromJSON(path string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("error opening file: %v", err)
-	}
-	defer file.Close()
-
-	var source JMdict
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&source); err != nil {
-		return fmt.Errorf("error decoding JSON: %v", err)
-	}
-
-	entriesChan := make(chan JMdictWord, di.batchSize)
-	errorsChan := make(chan error, 1)
-	var wg sync.WaitGroup
-
-	numWorkers := 3
-	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go di.processEntries(entriesChan, errorsChan, &wg)
-	}
-
-	startTime := time.Now()
-	for _, entry := range source.Words {
-		select {
-		case err := <-errorsChan:
-			close(entriesChan)
-			return fmt.Errorf("worker error: %v", err)
-		default:
-			entriesChan <- entry
-		}
-	}
-
-	close(entriesChan)
-	wg.Wait()
-
-	log.Printf("Import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
-	return nil
-}
-
-func (di *Database) Search(query string) ([]JMdictWord, error) {
+func (di *Database) Search(query string) ([]model.JMdictWord, error) {
 	ids, err := di.runBleveQuery(query)
 	if err != nil {
 		log.Printf("Failed to run Bleve query: %v", err)
@@ -154,40 +110,12 @@ func (di *Database) Search(query string) ([]JMdictWord, error) {
 	return results, nil
 }
 
-func NewTermQueryWithBoost(field string, term string, boost float64) *bleveSearch.TermQuery {
-	query := bleve.NewTermQuery(term)
-	query.SetField(field)
-	query.SetBoost(boost)
-	return query
-}
-
-func NewMatchQueryWithBoost(field string, term string, boost float64) *bleveSearch.MatchQuery {
-	query := bleve.NewMatchQuery(term)
-	query.SetField(field)
-	query.SetBoost(boost)
-	return query
-}
-
-func CreateBooleanQueryForField(query string, exactField string, charField string) *bleveSearch.BooleanQuery {
-	booleanQuery := bleve.NewBooleanQuery()
-
-	exactQuery := NewTermQueryWithBoost(exactField, query, 10.0)
-	booleanQuery.AddShould(exactQuery)
-
-	charQuery := NewMatchQueryWithBoost(charField, query, 1.0)
-	disjunctionQuery := bleve.NewDisjunctionQuery(charQuery)
-	disjunctionQuery.SetMin(1)
-	booleanQuery.AddShould(disjunctionQuery)
-
-	return booleanQuery
-}
-
 func (di *Database) runBleveQuery(query string) ([]string, error) {
 	meaningsQuery := bleve.NewTermQuery(query)
 	meaningsQuery.SetField("meanings")
 
-	kanaBooleanQuery := CreateBooleanQueryForField(query, "kana_exact", "kana_char")
-	kanjiBooleanQuery := CreateBooleanQueryForField(query, "kanji_exact", "kanji_char")
+	kanaBooleanQuery := util.NewJapaneseFieldQuery(query, "kana_exact", "kana_char")
+	kanjiBooleanQuery := util.NewJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
 
 	booleanQuery := bleve.NewBooleanQuery()
 	booleanQuery.AddShould(meaningsQuery)
@@ -206,7 +134,7 @@ func (di *Database) runBleveQuery(query string) ([]string, error) {
 
 	var ids []string // List of Ids for every query hit
 	for _, hit := range searchResults.Hits {
-		var entry BleveEntry
+		var entry model.BleveEntry
 
 		// Serialize the map to a JSON byte slice
 		jsonBytes, err := json.Marshal(hit.Fields)
@@ -227,7 +155,7 @@ func (di *Database) runBleveQuery(query string) ([]string, error) {
 	return ids, nil
 }
 
-func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
+func (di *Database) runMongoFind(ids []string) ([]model.JMdictWord, error) {
 	ctx := context.Background()
 
 	f := bson.M{
@@ -243,9 +171,9 @@ func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
 	defer cursor.Close(ctx)
 
 	// Iter through the Mongo cursor to fetch the returned Find data
-	var results []JMdictWord
+	var results []model.JMdictWord
 	for cursor.Next(ctx) {
-		var result JMdictWord
+		var result model.JMdictWord
 		if err := cursor.Decode(&result); err != nil {
 			return nil, fmt.Errorf("failed to decode document: %w", err)
 		}
@@ -272,7 +200,7 @@ func (di *Database) runMongoFind(ids []string) ([]JMdictWord, error) {
 	return results, nil
 }
 
-func (di *Database) processEntries(entries <-chan JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
+func (di *Database) importJmdictEntries(entries <-chan model.JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	ctx := context.Background()
