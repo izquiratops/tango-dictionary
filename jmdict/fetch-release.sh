@@ -15,7 +15,6 @@ else
     BROWSER_DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | jq -r '.browser_download_url')
 
     # Follow HTTP redirections (301) https://askubuntu.com/a/1036492
-    # FILENAME=$(basename "$BROWSER_DOWNLOAD_URL")
     curl -sLO -H 'Accept-encoding: gzip' "$BROWSER_DOWNLOAD_URL"
 fi
 

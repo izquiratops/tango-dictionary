@@ -13,6 +13,8 @@ type Xref struct {
 	SenseIndex  *int    `json:"senseIndex,omitempty" bson:"senseIndex,omitempty"`
 }
 
+// Xref is a struct that can be 4 different kinds. It's a valid thing in TypeScript, but Go doesn't let you have it.
+// This custom unmarshaller parse Xref to a single struct.
 func (x *Xref) UnmarshalJSON(data []byte) error {
 	var fullRef [3]interface{}
 	if err := json.Unmarshal(data, &fullRef); err != nil {

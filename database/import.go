@@ -47,6 +47,6 @@ func (di *Database) ImportFromJSON(path string) error {
 	close(entriesChan)
 	wg.Wait()
 
-	log.Printf("Import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
+	log.Printf("Dictionary import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
 	return nil
 }

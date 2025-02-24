@@ -24,10 +24,10 @@ const (
 )
 
 type Database struct {
-	mongoClient     *mongo.Client
-	mongoCollection *mongo.Collection
-	bleveIndex      bleve.Index
-	batchSize       int
+	mongoDict  *mongo.Collection
+	mongoTags  *mongo.Collection
+	bleveIndex bleve.Index
+	batchSize  int
 }
 
 // 'indexFolder' makes it easier to run this method from Server and also from Unit test, where paths are different.
@@ -81,10 +81,10 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	}
 
 	return &Database{
-		mongoClient:     client,
-		mongoCollection: client.Database("dictionary").Collection(mongoCollectionName),
-		bleveIndex:      bleveIndex,
-		batchSize:       batchSize,
+		mongoDict:  client.Database(mongoCollectionName).Collection("dictionary"),
+		mongoTags:  client.Database(mongoCollectionName).Collection("tags"),
+		bleveIndex: bleveIndex,
+		batchSize:  batchSize,
 	}, nil
 }
 
@@ -164,7 +164,7 @@ func (di *Database) runMongoFind(ids []string) ([]model.JMdictWord, error) {
 		},
 	}
 
-	cursor, err := di.mongoCollection.Find(ctx, f)
+	cursor, err := di.mongoDict.Find(ctx, f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
 	}
@@ -232,7 +232,7 @@ func (di *Database) importJmdictEntries(entries <-chan model.JMdictWord, errors 
 
 		if len(mongoBatch) >= di.batchSize {
 			// MongoDB bulk write
-			if _, err := di.mongoCollection.BulkWrite(ctx, mongoBatch); err != nil {
+			if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
 				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
 				return
 			}
@@ -250,7 +250,7 @@ func (di *Database) importJmdictEntries(entries <-chan model.JMdictWord, errors 
 
 	// Process last batch. This runs the batch if mongoBatch never reached the batchSize threshold
 	if len(mongoBatch) > 0 {
-		if _, err := di.mongoCollection.BulkWrite(ctx, mongoBatch); err != nil {
+		if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
 			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
 			return
 		}

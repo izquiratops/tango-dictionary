@@ -21,7 +21,7 @@ func TestImportFromJSON(t *testing.T) {
 	}
 
 	// Clear collection to insert new data
-	database.mongoCollection.Drop(context.Background())
+	database.mongoDict.Drop(context.Background())
 
 	// Load the dictionary
 	jsonName := fmt.Sprintf("jmdict-eng-common-%s.json", dbVersion)

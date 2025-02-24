@@ -77,10 +77,10 @@ func RunServer(dbVersion string) error {
 	mux.HandleFunc("GET /", indexHandler)
 	mux.HandleFunc("GET /search", searchHandler)
 
-	// Serve static files
-	fsys := http.Dir("./server/static")
-	fileServer := http.FileServer(fsys)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
+	fileSystem := http.Dir("./server/static")
+	fileServer := http.FileServer(fileSystem)
+	fileHandler := http.StripPrefix("/static/", fileServer)
+	mux.Handle("GET /static/", fileHandler)
 
 	fmt.Println("Starting server on port 8080")
 	if err := http.ListenAndServe("localhost:8080", mux); err != nil {

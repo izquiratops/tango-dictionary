@@ -11,13 +11,13 @@
         <input type="submit" value="Search">
     </form>
     <h3>Search: {{.Query}}</h3>
-    <ul class="result-list">
+    <ul class="bottom-spaced">
         {{range .Results}}
         <li>
             {{if .Kanji}}
             <ul>
                 {{range .Kanji}}
-                <li>{{.Text}}</li>
+                <li><ruby>{{.Text}}<rt>かんじ</rt></ruby></li>
                 {{end}}
             </ul>
             {{else if .Kana}}
@@ -27,12 +27,12 @@
                 {{end}}
             </ul>
             {{end}} <!-- if .Kanji else if .Kana -->
-            <ul class="sense">
+            <ul id="sense">
                 {{if .Sense}}
                 {{range .Sense}}
                 {{if .Gloss}}
                 {{range .Gloss}}
-                <li>{{.Text}}</li>
+                <span>{{.Text}}</span>
                 {{end}} <!-- range .Gloss -->
                 {{end}} <!-- if .Gloss -->
                 {{end}} <!-- range .Sense -->
