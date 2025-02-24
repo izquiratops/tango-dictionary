@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,8 +9,12 @@ import (
 	"sync"
 	"tango/model"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// TODO: Import tags too
 func (di *Database) ImportFromJSON(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -30,7 +35,7 @@ func (di *Database) ImportFromJSON(path string) error {
 	numWorkers := 3
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go di.importJmdictEntries(entriesChan, errorsChan, &wg)
+		go di.bulkImportJmdictEntries(entriesChan, errorsChan, &wg)
 	}
 
 	startTime := time.Now()
@@ -49,4 +54,66 @@ func (di *Database) ImportFromJSON(path string) error {
 
 	log.Printf("Dictionary import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
 	return nil
+}
+
+func (di *Database) bulkImportJmdictEntries(entries <-chan model.JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ctx := context.Background()
+	mongoBatch := make([]mongo.WriteModel, 0, di.batchSize)
+	bleveBatch := di.bleveIndex.NewBatch()
+
+	for entry := range entries {
+		// Prepare MongoDB
+		bsonData, err := bson.Marshal(entry)
+		if err != nil {
+			errors <- fmt.Errorf("error marshalling to BSON: %v", err)
+			return
+		}
+
+		model := mongo.NewInsertOneModel().SetDocument(bsonData)
+		mongoBatch = append(mongoBatch, model)
+
+		// Prepare Bleve
+		bleveEntry, err := entry.ToBleveEntry()
+		if err != nil {
+			errors <- err
+			return
+		}
+
+		if err := bleveBatch.Index(entry.ID, bleveEntry); err != nil {
+			errors <- fmt.Errorf("error indexing in Bleve: %v", err)
+			return
+		}
+
+		if len(mongoBatch) >= di.batchSize {
+			// MongoDB bulk write
+			if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
+				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
+				return
+			}
+
+			// Bleve batch write
+			if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+				errors <- fmt.Errorf("error writing to Bleve: %v", err)
+				return
+			}
+
+			mongoBatch = mongoBatch[:0]
+			bleveBatch = di.bleveIndex.NewBatch()
+		}
+	}
+
+	// Process last batch. This runs the batch if mongoBatch never reached the batchSize threshold
+	if len(mongoBatch) > 0 {
+		if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
+			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
+			return
+		}
+
+		if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+			errors <- fmt.Errorf("error writing final batch to Bleve: %v", err)
+			return
+		}
+	}
 }

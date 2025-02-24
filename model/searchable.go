@@ -6,7 +6,7 @@ import (
 	"tango/util"
 )
 
-type BleveEntry struct { // Simplified version of JMdictWord
+type SearchableEntry struct {
 	ID         string   `json:"id"`
 	KanjiExact []string `json:"kanji_exact"`
 	KanjiChar  []string `json:"kanji_char"`
@@ -15,8 +15,8 @@ type BleveEntry struct { // Simplified version of JMdictWord
 	Meanings   []string `json:"meanings"`
 }
 
-func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
-	entry := BleveEntry{
+func (d *JMdictWord) ToBleveEntry() (SearchableEntry, error) {
+	entry := SearchableEntry{
 		ID:         d.ID, // ID not indexed
 		KanjiExact: make([]string, 0),
 		KanjiChar:  make([]string, 0),
@@ -58,9 +58,9 @@ func (d *JMdictWord) ToBleveEntry() (BleveEntry, error) {
 	return entry, nil
 }
 
-func (be *BleveEntry) UnmarshalJSON(data []byte) error {
+func (be *SearchableEntry) UnmarshalJSON(data []byte) error {
 	// Define a temporary struct to unmarshal the JSON data
-	type Alias BleveEntry
+	type Alias SearchableEntry
 	temp := &struct {
 		KanjiExact interface{} `json:"kanji_exact"`
 		KanjiChar  interface{} `json:"kanji_char"`
