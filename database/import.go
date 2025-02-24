@@ -35,7 +35,7 @@ func (di *Database) ImportFromJSON(path string) error {
 	numWorkers := 3
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go di.bulkImportJmdictEntries(entriesChan, errorsChan, &wg)
+		go bulkImportJmdictEntries(entriesChan, errorsChan, &wg, di)
 	}
 
 	startTime := time.Now()
@@ -56,7 +56,7 @@ func (di *Database) ImportFromJSON(path string) error {
 	return nil
 }
 
-func (di *Database) bulkImportJmdictEntries(entries <-chan model.JMdictWord, errors chan<- error, wg *sync.WaitGroup) {
+func bulkImportJmdictEntries(entries <-chan model.JMdictWord, errors chan<- error, wg *sync.WaitGroup, di *Database) {
 	defer wg.Done()
 
 	ctx := context.Background()
