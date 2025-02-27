@@ -2,17 +2,18 @@ package server
 
 import "tango/model"
 
+// TODO: Add a test for ProcessEntries
 // UIEntry represents a simplified and processed version of a JMdictWord.
 // Its used for populating HTML templates.
 type UIEntry struct {
-	MainWord   WordWithReading   `json:"mainWord"`
-	OtherForms []WordWithReading `json:"otherForms"`
-	IsCommon   bool              `json:"isCommon"`
-	Meanings   []string          `json:"meanings"`
+	MainWord   Furigana   `json:"mainWord"`
+	OtherForms []Furigana `json:"otherForms"`
+	IsCommon   bool       `json:"isCommon"`
+	Meanings   []string   `json:"meanings"`
 }
 
-type WordWithReading struct {
-	Word    string `json:"word"`
+type Furigana struct {
+	Word    string `json:"word"` // Kanji or kana as fallback
 	Reading string `json:"reading"`
 }
 
@@ -21,42 +22,34 @@ func ProcessEntries(words []model.JMdictWord) []UIEntry {
 
 	for _, word := range words {
 		entry := UIEntry{
-			OtherForms: make([]WordWithReading, 0),
+			OtherForms: make([]Furigana, 0),
 			Meanings:   make([]string, 0),
 		}
 
 		// Handle main word and other forms
 		if len(word.Kanji) > 0 {
-			// Find matching kana for the first kanji
-			reading := findMatchingKana(word.Kanji[0], word.Kana)
-			entry.MainWord = WordWithReading{
-				Word:    word.Kanji[0].Text,
-				Reading: reading,
-			}
-			entry.IsCommon = word.Kanji[0].Common
-
-			// Process other kanji forms
-			for i := 1; i < len(word.Kanji); i++ {
+			for i := 0; i < len(word.Kanji); i++ {
 				reading := findMatchingKana(word.Kanji[i], word.Kana)
-				entry.OtherForms = append(entry.OtherForms, WordWithReading{
+				entry.OtherForms = append(entry.OtherForms, Furigana{
 					Word:    word.Kanji[i].Text,
 					Reading: reading,
 				})
+
+				if i == 0 {
+					entry.IsCommon = word.Kanji[0].Common
+				}
 			}
 		} else if len(word.Kana) > 0 {
 			// If no kanji, use first kana as main word
-			entry.MainWord = WordWithReading{
-				Word:    word.Kana[0].Text,
-				Reading: word.Kana[0].Text,
-			}
-			entry.IsCommon = word.Kana[0].Common
-
-			// Add other kana forms if they exist
-			for i := 1; i < len(word.Kana); i++ {
-				entry.OtherForms = append(entry.OtherForms, WordWithReading{
+			for i := 0; i < len(word.Kana); i++ {
+				entry.OtherForms = append(entry.OtherForms, Furigana{
 					Word:    word.Kana[i].Text,
-					Reading: word.Kana[i].Text,
+					Reading: "",
 				})
+
+				if i == 0 {
+					entry.IsCommon = word.Kana[0].Common
+				}
 			}
 		}
 
@@ -81,6 +74,7 @@ func ProcessEntries(words []model.JMdictWord) []UIEntry {
 // Returns the appropriate reading for a kanji based on AppliesToKanji
 func findMatchingKana(kanji model.JMdictKanji, kanaList []model.JMdictKana) string {
 	for _, kana := range kanaList {
+		// TODO: Include also '*'
 		// If appliesToKanji is empty, this kana applies to all kanji
 		if len(kana.AppliesToKanji) == 0 {
 			return kana.Text
@@ -92,10 +86,12 @@ func findMatchingKana(kanji model.JMdictKanji, kanaList []model.JMdictKana) stri
 			}
 		}
 	}
+
 	// If no match found, return first kana as fallback
 	if len(kanaList) > 0 {
 		return kanaList[0].Text
 	}
+
 	return ""
 }
 
