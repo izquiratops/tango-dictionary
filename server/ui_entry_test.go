@@ -29,11 +29,35 @@ func TestProcessEntries(t *testing.T) {
 					},
 					Sense: []model.JMdictSense{
 						{
-							PartOfSpeech: []string{"adj-i"},
+							PartOfSpeech:   []string{"adj-i"},
+							Info:           []string{"暖かい usu. refers to air temperature"},
+							AppliesToKanji: []string{"*"},
+							AppliesToKana:  []string{"*"},
 							Gloss: []model.JMdictGloss{
 								{Lang: "eng", Text: "warm"},
 								{Lang: "eng", Text: "mild"},
 								{Lang: "eng", Text: "(pleasantly) hot"},
+							},
+						},
+						{
+							PartOfSpeech:   []string{"adj-i"},
+							Info:           []string{},
+							AppliesToKanji: []string{"温かい"},
+							AppliesToKana:  []string{"*"},
+							Gloss: []model.JMdictGloss{
+								{Lang: "eng", Text: "considerate"},
+								{Lang: "eng", Text: "kind"},
+								{Lang: "eng", Text: "genial"},
+							},
+						},
+						{
+							PartOfSpeech:   []string{"adj-i"},
+							Info:           []string{},
+							AppliesToKanji: []string{"暖かい"},
+							AppliesToKana:  []string{"*"},
+							Gloss: []model.JMdictGloss{
+								{Lang: "eng", Text: "warm (of a colour)"},
+								{Lang: "eng", Text: "mellow"},
 							},
 						},
 					},
@@ -44,14 +68,14 @@ func TestProcessEntries(t *testing.T) {
 					MainWord: Furigana{Word: "暖かい", Reading: "あたたかい"},
 					OtherForms: []Furigana{
 						{Word: "温かい", Reading: "あたたかい"},
-						{Word: "暖い", Reading: "あったけー"},
+						{Word: "暖かい", Reading: "あったかい"},
+						{Word: "温かい", Reading: "あったかい"},
 					},
-					IsCommon: true,
+					Common: true,
 					Meanings: []string{
 						"warm, mild, (pleasantly) hot",
 						"considerate, kind, genial",
 						"warm (of a colour), mellow",
-						"having enough money",
 					},
 				},
 			},
