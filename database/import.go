@@ -88,7 +88,7 @@ func bulkImportJmdictEntries(entries <-chan model.JMdictWord, errors chan<- erro
 
 		if len(mongoBatch) >= di.batchSize {
 			// MongoDB bulk write
-			if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
+			if _, err := di.mongoWords.BulkWrite(ctx, mongoBatch); err != nil {
 				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
 				return
 			}
@@ -106,7 +106,7 @@ func bulkImportJmdictEntries(entries <-chan model.JMdictWord, errors chan<- erro
 
 	// Process last batch. This runs the batch if mongoBatch never reached the batchSize threshold
 	if len(mongoBatch) > 0 {
-		if _, err := di.mongoDict.BulkWrite(ctx, mongoBatch); err != nil {
+		if _, err := di.mongoWords.BulkWrite(ctx, mongoBatch); err != nil {
 			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
 			return
 		}

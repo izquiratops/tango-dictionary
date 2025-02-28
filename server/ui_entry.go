@@ -93,6 +93,6 @@ func processSenseWord(entry *UIEntry, word model.JMdictWord) {
 			glossList = append(glossList, g.Text)
 		}
 
-		entry.Meanings = append(entry.Meanings, strings.Join(glossList, ", "))
+		entry.Meanings = append(entry.Meanings, strings.Join(glossList, "; "))
 	}
 }

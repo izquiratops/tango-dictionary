@@ -14,32 +14,22 @@
     <ul class="bottom-spaced">
         {{range .Results}}
         <li>
-            {{if .Kanji}}
             <ul>
-                {{range .Kanji}}
-                <li><ruby>{{.Text}}<rt>かんじ</rt></ruby></li>
-                {{end}}
+                <li>
+                    <ruby>{{.MainWord.Word}}<rt>{{.MainWord.Reading}}</rt></ruby>
+                </li>
             </ul>
-            {{else if .Kana}}
+            <!-- TODO: Fix common flag, is showing as always true -->
+            {{if eq .Common true}}
+            <span>Is Common</span>
+            {{end}}
             <ul>
-                {{range .Kana}}
-                <li>{{.Text}}</li>
+                {{range .Meanings}}
+                <li>{{.}}</li>
                 {{end}}
-            </ul>
-            {{end}} <!-- if .Kanji else if .Kana -->
-            <ul id="sense">
-                {{if .Sense}}
-                {{range .Sense}}
-                {{if .Gloss}}
-                {{range .Gloss}}
-                <span>{{.Text}}</span>
-                {{end}} <!-- range .Gloss -->
-                {{end}} <!-- if .Gloss -->
-                {{end}} <!-- range .Sense -->
-                {{end}} <!-- if .Sense -->
             </ul>
         </li>
-        {{end}} <!-- range .Results -->
+        {{end}}
     </ul>
 </body>
 </html>

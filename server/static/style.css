@@ -50,18 +50,6 @@ form {
     margin-inline-start: var(--space-xs);
 }
 
-#sense {
-    span {
-        display: inline-block;
-    }
-    span::first-letter {
-        text-transform: uppercase;
-    }
-    span:not(:last-child)::after {
-        content: ",";
-    }
-}
-
 .bottom-spaced {
     padding-bottom: var(--space-xxl);
 }

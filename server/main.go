@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"strings"
 	"tango/database"
-	"tango/model"
 )
 
 var db *database.Database
 
 type SearchData struct {
 	Query   string
-	Results []model.JMdictWord
+	Results []UIEntry
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +50,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := SearchData{
 		Query:   query,
-		Results: results,
+		Results: ProcessEntries(results),
 	}
 
 	executeErr := tmpl.Execute(w, data)

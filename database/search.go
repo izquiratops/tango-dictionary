@@ -107,7 +107,7 @@ func fetchWordsByIDs(ids []string, di *Database) ([]model.JMdictWord, error) {
 		},
 	}
 
-	cursor, err := di.mongoDict.Find(ctx, filter)
+	cursor, err := di.mongoWords.Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
 	}

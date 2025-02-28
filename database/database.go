@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +17,7 @@ const (
 )
 
 type Database struct {
-	mongoDict  *mongo.Collection
+	mongoWords *mongo.Collection
 	mongoTags  *mongo.Collection
 	bleveIndex bleve.Index
 	batchSize  int
@@ -27,7 +28,8 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	// Setup version names
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
 	blevePath := filepath.Join(indexFolder, bleveFilename)
-	mongoCollectionName := fmt.Sprintf("jmdict_%v", dbVersion)
+	// Mongo do not allow collection names with dots
+	mongoCollectionName := strings.Replace(dbVersion, ".", "_", 2)
 
 	// Setup Mongo
 	ctx := context.Background()
@@ -73,7 +75,7 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	}
 
 	return &Database{
-		mongoDict:  client.Database(mongoCollectionName).Collection("dictionary"),
+		mongoWords: client.Database(mongoCollectionName).Collection("words"),
 		mongoTags:  client.Database(mongoCollectionName).Collection("tags"),
 		bleveIndex: bleveIndex,
 		batchSize:  batchSize,
