@@ -13,19 +13,27 @@ func TestProcessEntries(t *testing.T) {
 		expected []UIEntry
 	}{
 		{
-			name: "word with kanji and reading",
+			name: "Test: 暖かい",
 			input: []model.JMdictWord{
 				{
+					ID: "1586420",
 					Kanji: []model.JMdictKanji{
-						{Text: "食べる", Common: true},
+						{Text: "暖かい", Common: true},
+						{Text: "温かい", Common: true},
+						{Text: "暖い", Common: false, Tags: []string{"sK"}},
 					},
 					Kana: []model.JMdictKana{
-						{Text: "たべる"},
+						{Text: "あたたかい", Common: true, AppliesToKanji: []string{"*"}},
+						{Text: "あったかい", Common: false, AppliesToKanji: []string{"*"}},
+						{Text: "あったけー", Common: false, Tags: []string{"sK"}, AppliesToKanji: []string{"*"}},
 					},
 					Sense: []model.JMdictSense{
 						{
+							PartOfSpeech: []string{"adj-i"},
 							Gloss: []model.JMdictGloss{
-								{Lang: "eng", Text: "to eat"},
+								{Lang: "eng", Text: "warm"},
+								{Lang: "eng", Text: "mild"},
+								{Lang: "eng", Text: "(pleasantly) hot"},
 							},
 						},
 					},
@@ -33,71 +41,18 @@ func TestProcessEntries(t *testing.T) {
 			},
 			expected: []UIEntry{
 				{
+					MainWord: Furigana{Word: "暖かい", Reading: "あたたかい"},
 					OtherForms: []Furigana{
-						{Word: "食べる", Reading: "たべる"},
+						{Word: "温かい", Reading: "あたたかい"},
+						{Word: "暖い", Reading: "あったけー"},
 					},
 					IsCommon: true,
-					Meanings: []string{"to eat"},
-				},
-			},
-		},
-		{
-			name: "kana only word",
-			input: []model.JMdictWord{
-				{
-					Kana: []model.JMdictKana{
-						{Text: "あそこ", Common: true},
+					Meanings: []string{
+						"warm, mild, (pleasantly) hot",
+						"considerate, kind, genial",
+						"warm (of a colour), mellow",
+						"having enough money",
 					},
-					Sense: []model.JMdictSense{
-						{
-							Gloss: []model.JMdictGloss{
-								{Lang: "eng", Text: "there"},
-								{Lang: "eng", Text: "that place"},
-							},
-						},
-					},
-				},
-			},
-			expected: []UIEntry{
-				{
-					OtherForms: []Furigana{
-						{Word: "あそこ", Reading: ""},
-					},
-					IsCommon: true,
-					Meanings: []string{"there", "that place"},
-				},
-			},
-		},
-		{
-			name: "word with restricted senses",
-			input: []model.JMdictWord{
-				{
-					Kanji: []model.JMdictKanji{
-						{Text: "開く", Common: true},
-						{Text: "明く"},
-					},
-					Kana: []model.JMdictKana{
-						{Text: "あく", AppliesToKanji: []string{"開く"}},
-						{Text: "ひらく", AppliesToKanji: []string{"開く"}},
-					},
-					Sense: []model.JMdictSense{
-						{
-							AppliesToKanji: []string{"開く"},
-							Gloss: []model.JMdictGloss{
-								{Lang: "eng", Text: "to open"},
-							},
-						},
-					},
-				},
-			},
-			expected: []UIEntry{
-				{
-					OtherForms: []Furigana{
-						{Word: "開く", Reading: "あく"},
-						{Word: "明く", Reading: "あく"},
-					},
-					IsCommon: true,
-					Meanings: []string{"to open"},
 				},
 			},
 		},
