@@ -1,8 +1,8 @@
-package model
+package jmdict
 
 import (
 	"encoding/json"
-	"tango/util"
+	"tango/utils"
 	"testing"
 )
 
@@ -16,71 +16,71 @@ func TestUnmarshalXRef(t *testing.T) {
 			"[kanji, kana, senseIndex]",
 			`["日本", "にほん", 1]`,
 			Xref{
-				Kanji:      util.ToStringPtr("日本"),
-				Kana:       util.ToStringPtr("にほん"),
-				SenseIndex: util.ToIntPtr(1.0),
+				Kanji:      utils.ToStringPtr("日本"),
+				Kana:       utils.ToStringPtr("にほん"),
+				SenseIndex: utils.ToIntPtr(1.0),
 			},
 		},
 		{
 			"[kanji, kana]",
 			`["世界", "せかい"]`,
 			Xref{
-				Kanji: util.ToStringPtr("世界"),
-				Kana:  util.ToStringPtr("せかい"),
+				Kanji: utils.ToStringPtr("世界"),
+				Kana:  utils.ToStringPtr("せかい"),
 			},
 		},
 		{
 			"[kanjiOrKana, senseIndex]",
 			`["日本", 2]`,
 			Xref{
-				KanjiOrKana: util.ToStringPtr("日本"),
-				SenseIndex:  util.ToIntPtr(2.0),
+				KanjiOrKana: utils.ToStringPtr("日本"),
+				SenseIndex:  utils.ToIntPtr(2.0),
 			},
 		},
 		{
 			"[kanjiOrKana]",
 			`["こんにちは"]`,
 			Xref{
-				KanjiOrKana: util.ToStringPtr("こんにちは"),
+				KanjiOrKana: utils.ToStringPtr("こんにちは"),
 			},
 		},
 	}
 
 	for _, testCase := range testCases {
-		var xRef Xref
-		err := json.Unmarshal([]byte(testCase.jsonData), &xRef)
+		var xref Xref
+		err := json.Unmarshal([]byte(testCase.jsonData), &xref)
 		if err != nil {
 			t.Errorf("Error unmarshalling JSON: %v", err)
 		}
 
-		if !util.EqualPointers(xRef.Kanji, testCase.expected.Kanji) {
+		if !utils.EqualPointers(xref.Kanji, testCase.expected.Kanji) {
 			t.Errorf(
 				"Unexpected Kanji value. Expected: %v, Got: %v",
 				testCase.expected.Kanji,
-				xRef.Kanji,
+				xref.Kanji,
 			)
 		}
 
-		if !util.EqualPointers(xRef.Kana, testCase.expected.Kana) {
+		if !utils.EqualPointers(xref.Kana, testCase.expected.Kana) {
 			t.Errorf(
 				"Unexpected Kana value. Expected: %v, Got: %v",
 				testCase.expected.Kana,
-				xRef.Kana,
+				xref.Kana,
 			)
 		}
 
-		if !util.EqualPointers(xRef.KanjiOrKana, testCase.expected.KanjiOrKana) {
+		if !utils.EqualPointers(xref.KanjiOrKana, testCase.expected.KanjiOrKana) {
 			t.Errorf("Unexpected KanjiOrKana value. Expected: %v, Got: %v",
 				testCase.expected.KanjiOrKana,
-				xRef.KanjiOrKana,
+				xref.KanjiOrKana,
 			)
 		}
 
-		if !util.EqualPointers(xRef.SenseIndex, testCase.expected.SenseIndex) {
+		if !utils.EqualPointers(xref.SenseIndex, testCase.expected.SenseIndex) {
 			t.Errorf(
 				"Unexpected SenseIndex value. Expected: %d, Got: %d",
 				testCase.expected.SenseIndex,
-				xRef.SenseIndex,
+				xref.SenseIndex,
 			)
 		}
 	}

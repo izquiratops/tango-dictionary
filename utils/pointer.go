@@ -1,4 +1,4 @@
-package util
+package utils
 
 func ToStringPtr(v interface{}) *string {
 	if str, ok := v.(string); ok {

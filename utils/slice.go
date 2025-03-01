@@ -1,4 +1,4 @@
-package util
+package utils
 
 func EnsureSlice(value interface{}) []string {
 	switch v := value.(type) {

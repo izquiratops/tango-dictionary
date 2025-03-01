@@ -1,19 +1,15 @@
-package model
+package jmdict
 
 import (
 	"encoding/json"
 	"fmt"
-	"tango/util"
+	"tango/utils"
 )
 
-type Xref struct {
-	Kanji       *string `json:"kanji,omitempty" bson:"kanji,omitempty"`
-	Kana        *string `json:"kana,omitempty" bson:"kana,omitempty"`
-	KanjiOrKana *string `json:"kanji_or_kana,omitempty" bson:"kanji_or_kana,omitempty"`
-	SenseIndex  *int    `json:"senseIndex,omitempty" bson:"senseIndex,omitempty"`
-}
-
-// Xref is a struct that can be 4 different kinds: XrefWordReadingIndex | XrefWordReading | XrefWordIndex | XrefWord
+// Xref is a struct that can be 4 different kinds:
+//
+//	XrefWordReadingIndex | XrefWordReading | XrefWordIndex | XrefWord
+//
 // It's a valid thing in TypeScript, but Go doesn't let you have it.
 // This custom unmarshaller parse Xref to a single struct as a workaround.
 func (x *Xref) UnmarshalJSON(data []byte) error {
@@ -24,24 +20,24 @@ func (x *Xref) UnmarshalJSON(data []byte) error {
 
 	if fullRef[2] != nil {
 		// 1. Try to unmarshal as [kanji, kana, senseIndex]
-		x.Kanji = util.ToStringPtr(fullRef[0])
-		x.Kana = util.ToStringPtr(fullRef[1])
-		x.SenseIndex = util.ToIntPtr(fullRef[2])
+		x.Kanji = utils.ToStringPtr(fullRef[0])
+		x.Kana = utils.ToStringPtr(fullRef[1])
+		x.SenseIndex = utils.ToIntPtr(fullRef[2])
 		return nil
 	}
 
 	if fullRef[1] != nil {
-		kana := util.ToStringPtr(fullRef[1])
-		senseIndex := util.ToIntPtr(fullRef[1])
+		kana := utils.ToStringPtr(fullRef[1])
+		senseIndex := utils.ToIntPtr(fullRef[1])
 
 		if kana != nil {
 			// 2. Try to unmarshal as [kanji, kana]
-			x.Kanji = util.ToStringPtr(fullRef[0])
+			x.Kanji = utils.ToStringPtr(fullRef[0])
 			x.Kana = kana
 			return nil
 		} else if senseIndex != nil {
 			// 3. Try to unmarshal as [kanjiOrKana, senseIndex]
-			x.KanjiOrKana = util.ToStringPtr(fullRef[0])
+			x.KanjiOrKana = utils.ToStringPtr(fullRef[0])
 			x.SenseIndex = senseIndex
 			return nil
 		}
@@ -49,7 +45,7 @@ func (x *Xref) UnmarshalJSON(data []byte) error {
 
 	if fullRef[0] != nil {
 		// 4. Try to unmarshal as [kanjiOrKana]
-		x.KanjiOrKana = util.ToStringPtr(fullRef[0])
+		x.KanjiOrKana = utils.ToStringPtr(fullRef[0])
 		return nil
 	}
 

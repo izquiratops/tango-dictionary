@@ -13,7 +13,7 @@ var db *database.Database
 
 type SearchData struct {
 	Query   string
-	Results []UIEntry
+	Results []database.EntryDatabase
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := SearchData{
 		Query:   query,
-		Results: ProcessEntries(results),
+		Results: results,
 	}
 
 	executeErr := tmpl.Execute(w, data)
@@ -61,12 +61,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 func RunServer(dbVersion string) error {
 	var err error
-	db, err = database.NewDatabase(
-		"mongodb://localhost:27017",
-		"./database",
-		dbVersion,
-		1000,
-	)
+	db, err = database.NewDatabase("mongodb://localhost:27017", dbVersion, 1000, false)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mongo database: %v", err)
 	}
