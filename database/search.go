@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"tango/utils"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/search/query"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -41,8 +41,8 @@ func performBleveQuery(query string, di *Database) ([]string, error) {
 	meaningsQuery := bleve.NewTermQuery(query)
 	meaningsQuery.SetField("meanings")
 
-	kanaBooleanQuery := utils.NewJapaneseFieldQuery(query, "kana_exact", "kana_char")
-	kanjiBooleanQuery := utils.NewJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
+	kanaBooleanQuery := newJapaneseFieldQuery(query, "kana_exact", "kana_char")
+	kanjiBooleanQuery := newJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
 
 	booleanQuery := bleve.NewBooleanQuery()
 	booleanQuery.AddShould(meaningsQuery)
@@ -69,6 +69,34 @@ func performBleveQuery(query string, di *Database) ([]string, error) {
 	ids := extractBleveResult(searchResults)
 
 	return ids, nil
+}
+
+func newTermQueryWithBoost(field string, term string, boost float64) *query.TermQuery {
+	query := bleve.NewTermQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
+
+func newMatchQueryWithBoost(field string, term string, boost float64) *query.MatchQuery {
+	query := bleve.NewMatchQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
+
+func newJapaneseFieldQuery(query string, exactField string, charField string) *query.BooleanQuery {
+	booleanQuery := bleve.NewBooleanQuery()
+
+	exactQuery := newTermQueryWithBoost(exactField, query, 2.0)
+	booleanQuery.AddShould(exactQuery)
+
+	charQuery := newMatchQueryWithBoost(charField, query, 0.5)
+	disjunctionQuery := bleve.NewDisjunctionQuery(charQuery)
+	disjunctionQuery.SetMin(1)
+	booleanQuery.AddShould(disjunctionQuery)
+
+	return booleanQuery
 }
 
 func extractBleveResult(searchResults *bleve.SearchResult) []string {

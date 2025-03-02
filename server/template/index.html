@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Tango</title>
     <link rel="stylesheet" href="./static/style.css">
 </head>
+
 <body>
-    <h1>Tango 🎋</h1>
+    <h1 id="title">Tango 🎋</h1>
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
         <input type="submit" value="Search">
     </form>
-    <section class="block-spaced">
+    <section class="block_spaced">
         <p>
-            This website is a lightweight Japanese-English dictionary. It provides a simple way to look up Japanese words and their English translations.<br>
-            While it's still in development and not yet comprehensive, the goal is to create a resource similar to <a href="https://jisho.org/" target="_blank" rel="noopener noreferrer">Jisho.org</a>. 
+            This website is a Japanese-English dictionary, it provides a simple way to look up Japanese words and their English meanings.
         </p>
         <p>
-            The code is open-sourced on my <a href="https://github.com/izquiratops/tango" target="_blank" rel="noopener noreferrer">Github</a><img id="github-mark" src="./static/github-mark.svg">
+            While it's still in <b>very</b> development, the goal is to create a resource similar to <a href="https://jisho.org/" target="_blank" rel="noopener noreferrer">Jisho.org</a>.
+        </p>
+        <p>
+            As a lot of other places, I'm using JMDICT to get the dictionary content. This project is open-sourced on my <a href="https://github.com/izquiratops/tango" target="_blank" rel="noopener noreferrer">Github</a><img id="github_icon" src="./static/github-mark.svg" title="ニャー～">.
         </p>
     </section>
 </body>

@@ -6,33 +6,59 @@
     --space-lg: 24px;
     --space-xl: 32px;
     --space-xxl: 40px;
+    --palette-one: #89AC46;
+    --palette-two: #D3E671;
+    --palette-three: #F8ED8C;
+    --palette-four: #FF8989;
+    --background: #FBF6E9;
 }
 
 @font-face {
     font-family: NotoSansJP;
-    src: url("NotoSansJP.ttf");
+    src: url("NotoSansJP-Bold.ttf");
+    font-weight: 700;
 }
 
-html, body {
+@font-face {
+    font-family: NotoSansJP;
+    src: url("NotoSansJP-Regular.ttf");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: NotoSansJP;
+    src: url("NotoSansJP-Thin.ttf");
+    font-weight: 200;
+}
+
+html,
+body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #E0F5E8;
+    background: var(--background);
     font-family: NotoSansJP, serif;
     font-weight: 400;
     font-style: normal;
 }
 
 body {
-    margin: var(--space-xl) auto;
+    margin: 0 auto;
     padding: 0 var(--space-md);
     max-width: 720px;
     font-size: 18px;
     line-height: 1.6;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     line-height: 1.2;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
 }
 
 form {
@@ -45,15 +71,81 @@ form {
     }
 }
 
-#github-mark {
-    height: 1em;
-    margin-inline-start: var(--space-xs);
+.entry {
+    display: grid;
+    column-gap: 16px;
+    grid-template-columns: 130px min-content 1fr;
+    grid-template-rows: repeat(2, auto);
+    row-gap: var(--space-xs);
+    padding-bottom: var(--space-lg);
 }
 
-.bottom-spaced {
+.word {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    font-size: 1.6rem;
+}
+
+.tags {
+    grid-row: 2;
+    grid-column: 1 / 2;
+}
+
+.zig-zag-line {
+    grid-row: 2;
+    grid-column: 2 / 3;
+
+    --a: 90deg;
+    --s: 16px;
+    --b: 2px;
+
+    background: var(--palette-one);
+    opacity: 0.4;
+    width: calc(var(--b) + var(--s)/(2*tan(var(--a)/2)));
+    --_g: 100% var(--s) repeat-y conic-gradient(from calc(90deg - var(--a)/2) at left,
+            #0000,
+            #000 1deg calc(var(--a) - 1deg),
+            #0000 var(--a));
+    mask: var(--b) 50%/var(--_g) exclude, 0 50%/var(--_g);
+}
+
+.meanings {
+    grid-row: 2;
+    grid-column: 3 / -1;
+
+    counter-reset: item;
+
+    li:before {
+        content: counter(item) ". ";
+        counter-increment: item;
+        font-weight: 200;
+    }
+}
+
+.chip {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 0 var(--space-sm);
+    border-radius: var(--space-xs);
+    border: 1px solid var(--palette-one);
+    background: var(--palette-two);
+}
+
+.bottom_spaced {
     padding-bottom: var(--space-xxl);
 }
 
-.block-spaced {
-    margin: 12px 0;
+.block_spaced {
+    margin: var(--space-md) 0;
+}
+
+#title {
+    text-decoration: none;
+    color: inherit;
+}
+
+#github_icon {
+    height: 1em;
+    margin-inline-start: var(--space-xs);
 }
