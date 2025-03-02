@@ -20,7 +20,7 @@ func main() {
 	fmt.Printf("JMDict Version: %s\n", databaseVersion)
 	fmt.Printf("Database Rebuild: %v\n", rebuildDatabase)
 
-	fmt.Printf("\n⚡ Starting server...\n")
+	fmt.Printf("\nStarting server...\n")
 	if err := server.RunServer(databaseVersion, rebuildDatabase); err != nil {
 		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
 		os.Exit(1)
