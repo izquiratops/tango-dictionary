@@ -10,7 +10,7 @@ import (
 
 func resolveVersion() string {
 	var version string
-	flag.StringVar(&version, "v", "", "Set the version value")
+	flag.StringVar(&version, "version", "", "Set the version value")
 	flag.Parse()
 
 	// Set the env var TANGO_VERSION as fallback value
@@ -22,6 +22,9 @@ func resolveVersion() string {
 }
 
 func main() {
+	var rebuildDatabase bool
+	flag.BoolVar(&rebuildDatabase, "rebuild-database", false, "Rebuilds Database for the prompted version")
+
 	dbVersion := resolveVersion()
 	if dbVersion == "" {
 		log.Fatalf("You must set a JMDict version")
@@ -29,7 +32,7 @@ func main() {
 
 	fmt.Printf("Running server with version: %s\n", dbVersion)
 
-	if err := server.RunServer(dbVersion); err != nil {
+	if err := server.RunServer(dbVersion, rebuildDatabase); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

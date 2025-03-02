@@ -16,7 +16,7 @@ const (
 	defaultSearchFrom = 0
 )
 
-func NewDatabase(mongoURI string, dbVersion string, batchSize int, clearCollection bool) (*Database, error) {
+func NewDatabase(mongoURI string, dbVersion string, batchSize int, rebuildDatabase bool) (*Database, error) {
 	// Setup version names
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
 	// Mongo do not allow collection names with dots
@@ -29,7 +29,7 @@ func NewDatabase(mongoURI string, dbVersion string, batchSize int, clearCollecti
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
 	}
 
-	if clearCollection {
+	if rebuildDatabase {
 		// Drop tables before loading json data
 		client.Database(mongoCollectionName).Collection("words").Drop(ctx)
 		client.Database(mongoCollectionName).Collection("tags").Drop(ctx)

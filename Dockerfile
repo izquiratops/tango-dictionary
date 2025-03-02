@@ -8,7 +8,7 @@ RUN go mod download
 
 # Copy the rest of the source code and build it
 COPY . .
-RUN go build -o tango main.go
+RUN go build -ldflags "-w" -o tango main.go
 
 # Stage 2: Create a lightweight image with the Go binary
 FROM alpine:latest
@@ -23,4 +23,4 @@ EXPOSE 8080
 
 # Run the Go binary with the specified arguments
 ENTRYPOINT ["./tango"]
-CMD ["-v", "$DB_VERSION"]
+CMD ["--version", "$DB_VERSION", "--rebuild-database", "false"]

@@ -59,9 +59,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RunServer(dbVersion string) error {
+func RunServer(dbVersion string, rebuildDatabase bool) error {
 	var err error
-	db, err = database.NewDatabase("mongodb://localhost:27017", dbVersion, 1000, false)
+	db, err = database.NewDatabase("mongodb://localhost:27017", dbVersion, 1000, rebuildDatabase)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mongo database: %v", err)
 	}
