@@ -3,59 +3,99 @@ package server
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
+	"os"
 	"strings"
 	"tango/database"
+	"tango/utils"
 	"time"
 )
 
-var db *database.Database
+const addr = "0.0.0.0:8080"
+
+type Server struct {
+	db     *database.Database
+	config ServerConfig
+}
+
+type ServerConfig struct {
+	isLocalEnvironment bool
+	shouldRebuild      bool
+	jmdictVersion      string
+	mongoURI           string
+}
 
 type SearchData struct {
 	Query   string
 	Results []database.EntryDatabase
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func NewServer() (*Server, error) {
+	config, err := loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	db, err := initializeDatabase(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	return &Server{
+		db:     db,
+		config: config,
+	}, nil
+}
+
+func loadConfig() (ServerConfig, error) {
+	jmdictVersion := os.Getenv("TANGO_VERSION")
+	if jmdictVersion == "" {
+		return ServerConfig{}, fmt.Errorf("TANGO_VERSION environment variable must be set")
+	}
+
+	isLocalEnvironment := utils.ResolveBooleanFromEnv("TANGO_LOCAL")
+	mongoURI := map[bool]string{
+		true:  "mongodb://localhost:27017",
+		false: "mongodb://mongo:27017",
+	}[isLocalEnvironment]
+
+	return ServerConfig{
+		isLocalEnvironment: isLocalEnvironment,
+		shouldRebuild:      utils.ResolveBooleanFromEnv("TANGO_REBUILD"),
+		jmdictVersion:      jmdictVersion,
+		mongoURI:           mongoURI,
+	}, nil
+}
+
+func initializeDatabase(config ServerConfig) (*database.Database, error) {
+	db, err := database.NewDatabase(
+		config.mongoURI,
+		config.jmdictVersion,
+		1000,
+		config.shouldRebuild,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./server/template/index.html")
 }
 
-func searchHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	query := r.URL.Query().Get("query")
 
-	var tmpl *template.Template
-	var parseErr error
-
-	results, searchErr := db.Search(query)
-	if searchErr == nil {
-		tmpl, parseErr = template.ParseFiles("./server/template/results.html")
-	} else {
-		switch {
-		case strings.Contains(searchErr.Error(), "no results found"):
-			tmpl, parseErr = template.ParseFiles("./server/template/not_found.html")
-		default:
-			http.Error(w, searchErr.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if parseErr != nil {
-		fmt.Printf("Template parsing error: %v\n", parseErr)
-		http.Error(w, parseErr.Error(), http.StatusInternalServerError)
+	tmpl, results, err := s.handleSearch(query)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data := SearchData{
-		Query:   query,
-		Results: results,
-	}
-
-	executeErr := tmpl.Execute(w, data)
-	if executeErr != nil {
-		fmt.Printf("Template execution error: %v\n", executeErr)
-		http.Error(w, executeErr.Error(), http.StatusInternalServerError)
+	if err := s.renderTemplate(w, tmpl, SearchData{Query: query, Results: results}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -63,27 +103,57 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Served search '%s' in %s\n", query, duration)
 }
 
-func RunServer(databaseVersion string, rebuildDatabase bool) error {
-	var err error
-	db, err = database.NewDatabase("mongodb://mongo:27017", databaseVersion, 1000, rebuildDatabase)
+func (s *Server) handleSearch(query string) (*template.Template, []database.EntryDatabase, error) {
+	results, err := s.db.Search(query)
 	if err != nil {
-		log.Fatalf("Couldn't setup database: %v", err)
+		if strings.Contains(err.Error(), "no results found") {
+			tmpl, err := template.ParseFiles("./server/template/not_found.html")
+			return tmpl, nil, err
+		}
+		return nil, nil, err
 	}
-	fmt.Printf("Database setted up successfully\n")
 
+	tmpl, err := template.ParseFiles("./server/template/results.html")
+	return tmpl, results, err
+}
+
+func (s *Server) renderTemplate(w http.ResponseWriter, tmpl *template.Template, data interface{}) error {
+	if err := tmpl.Execute(w, data); err != nil {
+		fmt.Printf("Template execution error: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (s *Server) setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /", indexHandler)
-	mux.HandleFunc("GET /search", searchHandler)
+	mux.HandleFunc("GET /", s.indexHandler)
+	mux.HandleFunc("GET /search", s.searchHandler)
 
 	fileSystem := http.Dir("./server/static")
 	fileServer := http.FileServer(fileSystem)
 	fileHandler := http.StripPrefix("/static", fileServer)
-	mux.Handle("GET /static", fileHandler)
+	mux.Handle("GET /static/", fileHandler)
 
-	addr := "0.0.0.0:8080"
+	return mux
+}
+
+func RunServer() error {
+	server, err := NewServer()
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
+
+	fmt.Printf("\nInitializing server...\n")
+	fmt.Printf("JMDict Version: %s\n", server.config.jmdictVersion)
+	fmt.Printf("Database Rebuild: %v\n", server.config.shouldRebuild)
+	fmt.Printf("Database setted up successfully\n")
+
+	mux := server.setupRoutes()
+
 	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		return fmt.Errorf("server failed to start: %w", err)
 	}
 
 	return nil
