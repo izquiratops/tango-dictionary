@@ -19,7 +19,6 @@ type SearchData struct {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./server/template/index.html")
-	fmt.Printf("📤 Served index page to %s\n", r.RemoteAddr)
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +42,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if parseErr != nil {
-		fmt.Printf("❌ Template parsing error: %v\n", parseErr)
+		fmt.Printf("Template parsing error: %v\n", parseErr)
 		http.Error(w, parseErr.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -55,42 +54,36 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	executeErr := tmpl.Execute(w, data)
 	if executeErr != nil {
-		fmt.Printf("❌ Template execution error: %v\n", executeErr)
+		fmt.Printf("Template execution error: %v\n", executeErr)
 		http.Error(w, executeErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("📤 Served search '%s' in %s to %s\n", query, duration, r.RemoteAddr)
+	fmt.Printf("Served search '%s' in %s\n", query, duration)
 }
 
 func RunServer(databaseVersion string, rebuildDatabase bool) error {
-	fmt.Printf("🔄 Connecting to MongoDB...\n")
-
 	var err error
-	db, err = database.NewDatabase("mongodb://localhost:27017", databaseVersion, 1000, rebuildDatabase)
+	db, err = database.NewDatabase("mongodb://mongo:27017", databaseVersion, 1000, rebuildDatabase)
 	if err != nil {
-		log.Fatalf("⛔ Couldn't setup database: %v", err)
+		log.Fatalf("Couldn't setup database: %v", err)
 	}
-	fmt.Printf("✅ Database setted up successfully\n")
+	fmt.Printf("Database setted up successfully\n")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", indexHandler)
-	fmt.Printf("📌 Registered route: GET /\n")
-
 	mux.HandleFunc("GET /search", searchHandler)
-	fmt.Printf("📌 Registered route: GET /search\n")
 
 	fileSystem := http.Dir("./server/static")
 	fileServer := http.FileServer(fileSystem)
 	fileHandler := http.StripPrefix("/static", fileServer)
 	mux.Handle("GET /static", fileHandler)
-	fmt.Printf("📌 Registered route: GET /static\n")
 
-	fmt.Printf("\n🚀 Starting server on localhost:8080\n")
-	if err := http.ListenAndServe("localhost:8080", mux); err != nil {
-		log.Fatalf("⛔ Server failed to start: %v", err)
+	addr := "0.0.0.0:8080"
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		log.Fatalf("Server failed to start: %v", err)
 	}
 
 	return nil
