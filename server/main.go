@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"strings"
 	"tango/database"
-	"tango/model"
+	"time"
 )
 
 var db *database.Database
 
 type SearchData struct {
 	Query   string
-	Results []model.JMdictWord
+	Results []database.EntryDatabase
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,29 +22,27 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
 	query := r.URL.Query().Get("query")
 
-	// Parse HTML based on the response of the database search
 	var tmpl *template.Template
 	var parseErr error
 
 	results, searchErr := db.Search(query)
 	if searchErr == nil {
-		// 200 OK, list with valid content
 		tmpl, parseErr = template.ParseFiles("./server/template/results.html")
 	} else {
 		switch {
 		case strings.Contains(searchErr.Error(), "no results found"):
-			// 200 OK, BUT empty list of results
 			tmpl, parseErr = template.ParseFiles("./server/template/not_found.html")
 		default:
-			// 500 NOK, searchErr is any Errorf throw by Bleve or Mongo
 			http.Error(w, searchErr.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if parseErr != nil {
+		fmt.Printf("Template parsing error: %v\n", parseErr)
 		http.Error(w, parseErr.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -56,21 +54,22 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	executeErr := tmpl.Execute(w, data)
 	if executeErr != nil {
+		fmt.Printf("Template execution error: %v\n", executeErr)
 		http.Error(w, executeErr.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	duration := time.Since(startTime)
+	fmt.Printf("Served search '%s' in %s\n", query, duration)
 }
 
-func RunServer(dbVersion string) error {
+func RunServer(databaseVersion string, rebuildDatabase bool) error {
 	var err error
-	db, err = database.NewDatabase(
-		"mongodb://localhost:27017",
-		"./database",
-		dbVersion,
-		1000,
-	)
+	db, err = database.NewDatabase("mongodb://mongo:27017", databaseVersion, 1000, rebuildDatabase)
 	if err != nil {
-		log.Fatalf("Couldn't connect to mongo database: %v", err)
+		log.Fatalf("Couldn't setup database: %v", err)
 	}
+	fmt.Printf("Database setted up successfully\n")
 
 	mux := http.NewServeMux()
 
@@ -79,11 +78,11 @@ func RunServer(dbVersion string) error {
 
 	fileSystem := http.Dir("./server/static")
 	fileServer := http.FileServer(fileSystem)
-	fileHandler := http.StripPrefix("/static/", fileServer)
-	mux.Handle("GET /static/", fileHandler)
+	fileHandler := http.StripPrefix("/static", fileServer)
+	mux.Handle("GET /static", fileHandler)
 
-	fmt.Println("Starting server on port 8080")
-	if err := http.ListenAndServe("localhost:8080", mux); err != nil {
+	addr := "0.0.0.0:8080"
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 

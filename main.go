@@ -1,36 +1,30 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"tango/server"
+	"tango/utils"
 )
 
-func resolveVersion() string {
-	var version string
-	flag.StringVar(&version, "v", "", "Set the version value")
-	flag.Parse()
-
-	// Set the env var TANGO_VERSION as fallback value
-	if version == "" {
-		version = os.Getenv("TANGO_VERSION")
-	}
-
-	return version
-}
-
 func main() {
-	dbVersion := resolveVersion()
-	if dbVersion == "" {
+	rebuildDatabase := utils.ResolveBooleanFromEnv("TANGO_REBUILD")
+	databaseVersion := os.Getenv("TANGO_VERSION")
+
+	if databaseVersion == "" {
 		log.Fatalf("You must set a JMDict version")
 	}
 
-	fmt.Printf("Running server with version: %s\n", dbVersion)
+	fmt.Printf("\nInitializing server...\n")
+	fmt.Printf("JMDict Version: %s\n", databaseVersion)
+	fmt.Printf("Database Rebuild: %v\n", rebuildDatabase)
 
-	if err := server.RunServer(dbVersion); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	fmt.Printf("\nStarting server...\n")
+	if err := server.RunServer(databaseVersion, rebuildDatabase); err != nil {
+		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
 		os.Exit(1)
 	}
+
+	fmt.Printf("\nServer shutting down...\n")
 }

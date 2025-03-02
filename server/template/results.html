@@ -1,45 +1,41 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Tango: {{.Query}}</title>
     <link rel="stylesheet" href="./static/style.css">
 </head>
+
 <body>
-    <h1><a href="/">Tango 🎋</a></h1>
+    <h1><a id="title" href="/" title="Go Home">Tango 🎋</a></h1>
     <form action="/search" method="get">
-        <input type="text" name="query" placeholder="English or Japanse">
+        <input type="text" name="query" placeholder="English or Japanse" required>
         <input type="submit" value="Search">
     </form>
     <h3>Search: {{.Query}}</h3>
-    <ul class="bottom-spaced">
+    <ul class="bottom_spaced">
         {{range .Results}}
-        <li>
-            {{if .Kanji}}
-            <ul>
-                {{range .Kanji}}
-                <li><ruby>{{.Text}}<rt>かんじ</rt></ruby></li>
+        <li class="entry">
+            <!-- Main word written in furigana -->
+            <ruby class="word">
+                {{.MainWord.Word}}
+                <rt>{{.MainWord.Reading}}</rt>
+            </ruby>
+            <!-- Chip list here, I'm currently supporting 'Common' only -->
+            <div class="tags">
+                {{if eq .Common true}}
+                <span class="chip">Common</span>
                 {{end}}
-            </ul>
-            {{else if .Kana}}
-            <ul>
-                {{range .Kana}}
-                <li>{{.Text}}</li>
+            </div>
+            <div class="zig-zag-line"></div>
+            <ul class="meanings">
+                {{range .Meanings}}
+                <li>{{.}}</li>
                 {{end}}
-            </ul>
-            {{end}} <!-- if .Kanji else if .Kana -->
-            <ul id="sense">
-                {{if .Sense}}
-                {{range .Sense}}
-                {{if .Gloss}}
-                {{range .Gloss}}
-                <span>{{.Text}}</span>
-                {{end}} <!-- range .Gloss -->
-                {{end}} <!-- if .Gloss -->
-                {{end}} <!-- range .Sense -->
-                {{end}} <!-- if .Sense -->
             </ul>
         </li>
-        {{end}} <!-- range .Results -->
+        {{end}}
     </ul>
 </body>
+
 </html>

@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"tango/model"
-	"tango/util"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/search/query"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (di *Database) Search(query string) ([]model.JMdictWord, error) {
+func (di *Database) Search(query string) ([]EntryDatabase, error) {
 	ids, err := performBleveQuery(query, di)
 	if err != nil {
 		log.Printf("Failed to run Bleve query: %v", err)
@@ -42,8 +41,8 @@ func performBleveQuery(query string, di *Database) ([]string, error) {
 	meaningsQuery := bleve.NewTermQuery(query)
 	meaningsQuery.SetField("meanings")
 
-	kanaBooleanQuery := util.NewJapaneseFieldQuery(query, "kana_exact", "kana_char")
-	kanjiBooleanQuery := util.NewJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
+	kanaBooleanQuery := newJapaneseFieldQuery(query, "kana_exact", "kana_char")
+	kanjiBooleanQuery := newJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
 
 	booleanQuery := bleve.NewBooleanQuery()
 	booleanQuery.AddShould(meaningsQuery)
@@ -72,11 +71,39 @@ func performBleveQuery(query string, di *Database) ([]string, error) {
 	return ids, nil
 }
 
+func newTermQueryWithBoost(field string, term string, boost float64) *query.TermQuery {
+	query := bleve.NewTermQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
+
+func newMatchQueryWithBoost(field string, term string, boost float64) *query.MatchQuery {
+	query := bleve.NewMatchQuery(term)
+	query.SetField(field)
+	query.SetBoost(boost)
+	return query
+}
+
+func newJapaneseFieldQuery(query string, exactField string, charField string) *query.BooleanQuery {
+	booleanQuery := bleve.NewBooleanQuery()
+
+	exactQuery := newTermQueryWithBoost(exactField, query, 2.0)
+	booleanQuery.AddShould(exactQuery)
+
+	charQuery := newMatchQueryWithBoost(charField, query, 0.5)
+	disjunctionQuery := bleve.NewDisjunctionQuery(charQuery)
+	disjunctionQuery.SetMin(1)
+	booleanQuery.AddShould(disjunctionQuery)
+
+	return booleanQuery
+}
+
 func extractBleveResult(searchResults *bleve.SearchResult) []string {
 	var ids []string // List of Ids for every query hit
 
 	for _, hit := range searchResults.Hits {
-		var entry model.SearchableEntry
+		var entry EntrySearchable
 
 		// Serialize the map to a JSON byte slice
 		jsonBytes, err := json.Marshal(hit.Fields)
@@ -98,7 +125,7 @@ func extractBleveResult(searchResults *bleve.SearchResult) []string {
 }
 
 // Code related to MongoDB
-func fetchWordsByIDs(ids []string, di *Database) ([]model.JMdictWord, error) {
+func fetchWordsByIDs(ids []string, di *Database) ([]EntryDatabase, error) {
 	ctx := context.Background()
 
 	filter := bson.M{
@@ -107,7 +134,7 @@ func fetchWordsByIDs(ids []string, di *Database) ([]model.JMdictWord, error) {
 		},
 	}
 
-	cursor, err := di.mongoDict.Find(ctx, filter)
+	cursor, err := di.mongoWords.Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
 	}
@@ -124,10 +151,10 @@ func fetchWordsByIDs(ids []string, di *Database) ([]model.JMdictWord, error) {
 	return sortedResults, nil
 }
 
-func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]model.JMdictWord, error) {
-	var results []model.JMdictWord
+func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]EntryDatabase, error) {
+	var results []EntryDatabase
 	for cursor.Next(ctx) {
-		var result model.JMdictWord
+		var result EntryDatabase
 		if err := cursor.Decode(&result); err != nil {
 			return nil, fmt.Errorf("failed to decode document: %w", err)
 		}
@@ -141,7 +168,7 @@ func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]model.JMd
 	return results, nil
 }
 
-func sortWords(results []model.JMdictWord, targetOrder []string) []model.JMdictWord {
+func sortWords(results []EntryDatabase, targetOrder []string) []EntryDatabase {
 	sort.SliceStable(results, func(i, j int) bool {
 		for _, id := range targetOrder {
 			if results[i].ID == id {

@@ -3,7 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"os"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,25 +16,26 @@ const (
 	defaultSearchFrom = 0
 )
 
-type Database struct {
-	mongoDict  *mongo.Collection
-	mongoTags  *mongo.Collection
-	bleveIndex bleve.Index
-	batchSize  int
-}
-
-// 'indexFolder' makes it easier to run this method from Server and also from Unit test, where paths are different.
-func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSize int) (*Database, error) {
+func NewDatabase(mongoURI string, dbVersion string, batchSize int, rebuildDatabase bool) (*Database, error) {
 	// Setup version names
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
-	blevePath := filepath.Join(indexFolder, bleveFilename)
-	mongoCollectionName := fmt.Sprintf("jmdict_%v", dbVersion)
+	// Mongo do not allow collection names with dots
+	mongoCollectionName := strings.Replace(dbVersion, ".", "_", 2)
 
 	// Setup Mongo
 	ctx := context.Background()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
+	}
+
+	if rebuildDatabase {
+		// Drop tables before loading json data
+		client.Database(mongoCollectionName).Collection("words").Drop(ctx)
+		client.Database(mongoCollectionName).Collection("tags").Drop(ctx)
+
+		// Clear Bleve index before creating a new one
+		os.RemoveAll(fmt.Sprintf("./jmdict_%s.bleve", dbVersion))
 	}
 
 	// Setup Bleve
@@ -64,16 +66,16 @@ func NewDatabase(mongoURI string, indexFolder string, dbVersion string, batchSiz
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
 	// Try to open index, create one if doesn't exist
-	bleveIndex, err := bleve.New(blevePath, indexMapping)
+	bleveIndex, err := bleve.New(bleveFilename, indexMapping)
 	if err != nil {
-		bleveIndex, err = bleve.Open(blevePath)
+		bleveIndex, err = bleve.Open(bleveFilename)
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}
 	}
 
 	return &Database{
-		mongoDict:  client.Database(mongoCollectionName).Collection("dictionary"),
+		mongoWords: client.Database(mongoCollectionName).Collection("words"),
 		mongoTags:  client.Database(mongoCollectionName).Collection("tags"),
 		bleveIndex: bleveIndex,
 		batchSize:  batchSize,

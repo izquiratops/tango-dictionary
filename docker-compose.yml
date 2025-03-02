@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    networks:
+      - happy-net
+    volumes:
+      - ${TANGO_BLEVE_PATH}:/root
+    environment:
+      - TANGO_VERSION=${TANGO_VERSION}
+      - TANGO_REBUILD=${TANGO_REBUILD}
+      - TANGO_BLEVE_PATH=${TANGO_BLEVE_PATH}
+    command: ["./app/tango"]
+
+  mongo:
+    image: mongo:latest
+    networks:
+      - happy-net
+    volumes:
+      - mongodb_data:/data/db
+
+networks:
+  happy-net:
+    driver: bridge
+
+volumes:
+  mongodb_data:
