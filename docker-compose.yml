@@ -16,7 +16,6 @@ services:
     environment:
       - TANGO_VERSION=${TANGO_VERSION}
       - TANGO_REBUILD=${TANGO_REBUILD}
-      - TANGO_BLEVE_PATH=${TANGO_BLEVE_PATH}
     command: ["./app/tango"]
 
   mongo:

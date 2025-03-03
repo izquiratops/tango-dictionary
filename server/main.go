@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const addr = "0.0.0.0:8080"
+const (
+	addr = "0.0.0.0:8080"
+	importBatchSize = 1000
+)
 
 type Server struct {
 	db     *database.Database
@@ -56,7 +59,7 @@ func loadConfig() (ServerConfig, error) {
 	isLocalEnvironment := utils.ResolveBooleanFromEnv("TANGO_LOCAL")
 	mongoURI := map[bool]string{
 		true:  "mongodb://localhost:27017",
-		false: "mongodb://mongo:27017",
+		false: "mongodb://mongo:27017", // The docker service is currently called "mongo"
 	}[isLocalEnvironment]
 
 	return ServerConfig{
@@ -71,7 +74,7 @@ func initializeDatabase(config ServerConfig) (*database.Database, error) {
 	db, err := database.NewDatabase(
 		config.mongoURI,
 		config.jmdictVersion,
-		1000,
+		importBatchSize,
 		config.shouldRebuild,
 	)
 	if err != nil {

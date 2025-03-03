@@ -12,6 +12,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
 		os.Exit(1)
 	}
-
-	fmt.Printf("\nServer shutting down...\n")
 }
