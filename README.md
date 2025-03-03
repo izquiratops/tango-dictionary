@@ -17,7 +17,7 @@ This project use the content provided by [JMDict Simplified](https://github.com/
 
 ### Bash
 ```bash
-export TANGO_VERSION="3.6.1" && export TANGO_REBUILD="true" && export TANGO_JMDICT_SOURCE_PATH="./jmdict_source" && docker-compose up
+export TANGO_VERSION="3.6.1" && export TANGO_REBUILD="true" && export TANGO_JMDICT_SOURCE_PATH="./jmdict_source" && docker compose up
 ```
 
 ### PowerShell
