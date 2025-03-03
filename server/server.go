@@ -3,8 +3,10 @@ package server
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"tango/database"
 	"tango/types"
@@ -68,7 +70,7 @@ func (s *Server) renderTemplate(w http.ResponseWriter, tmpl *template.Template, 
 }
 
 func (s *Server) SetupRoutes() *http.ServeMux {
-	fmt.Printf("Setting up routes...")
+	fmt.Printf("Setting up routes...\n")
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", s.indexHandler)
@@ -89,14 +91,30 @@ func NewServer() (*Server, error) {
 	}
 
 	fmt.Printf("\nInitializing server...\n")
+	fmt.Printf("----------- Config values ----------\n")
 	fmt.Printf("JMDict Version: %s\n", config.JmdictVersion)
-	fmt.Printf("Database Rebuild: %v\n", config.ShouldRebuild)
-	fmt.Printf("Is Local env: %v\n", config.IsLocalEnvironment)
-	fmt.Printf("MongoURI: %v\n", config.MongoURI)
+	fmt.Printf("Rebuild database: %v\n", config.ShouldRebuild)
+	fmt.Printf("Mongo connection Uri: %v\n", config.MongoURI)
+	fmt.Printf("Local env: %v\n", config.IsLocalEnvironment)
+	fmt.Printf("------------------------------------\n")
 
 	db, err := database.NewDatabase(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	if config.ShouldRebuild {
+		// Get executable directory
+		execPath, err := os.Executable()
+		if err != nil {
+			log.Fatal(err)
+		}
+		execDir := filepath.Dir(execPath)
+
+		jsonPath := filepath.Join(execDir, "jmdict_source", fmt.Sprintf("jmdict-eng-%s.json", config.JmdictVersion))
+		if err := db.ImportFromJSON(jsonPath); err != nil {
+			return nil, fmt.Errorf("failed to import from json: %w", err)
+		}
 	}
 
 	return &Server{

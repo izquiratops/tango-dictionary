@@ -20,18 +20,14 @@ func NewDatabase(config types.ServerConfig) (*Database, error) {
 		return nil, fmt.Errorf("error setting up MongoDB: %v", err)
 	}
 
-	fmt.Printf("MongoDB initialized successfully")
+	fmt.Printf("MongoDB initialized successfully\n")
 
 	bleveIndex, err := setupBleve(config.JmdictVersion, config.ShouldRebuild)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up Bleve: %v", err)
 	}
 
-	fmt.Printf("Bleve initialized successfully")
-
-	// if config.ShouldRebuild {
-	// 	TODO: Run import here!
-	// }
+	fmt.Printf("Bleve initialized successfully\n")
 
 	return &Database{
 		mongoWords: mongoDB.Collection("words"),
@@ -47,6 +43,8 @@ func setupMongoDB(mongoURI string, collectionName string, rebuildDatabase bool) 
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
 	}
+
+	fmt.Printf("MongoDB Collection used: %v\n", collectionName)
 
 	if rebuildDatabase {
 		client.Database(collectionName).Collection("words").Drop(ctx)
@@ -78,7 +76,9 @@ func setupBleve(dbVersion string, rebuildDatabase bool) (bleve.Index, error) {
 
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
-	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
+	bleveFilename := fmt.Sprintf("./jmdict_source/jmdict_%v.bleve", dbVersion)
+	fmt.Printf("Bleve Index used: %v\n", bleveFilename)
+
 	if rebuildDatabase {
 		os.RemoveAll(bleveFilename)
 	}

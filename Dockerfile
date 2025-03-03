@@ -22,7 +22,9 @@ FROM alpine:latest
 WORKDIR /app
 
 # Copy only necessary files from builder
-COPY --from=builder /app/tango /app/
+# - Executable
+COPY --from=builder /app/tango /app
+# - Static files
 COPY --from=builder /app/server/static /app/server/static
 COPY --from=builder /app/server/template /app/server/template
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"tango/jmdict"
@@ -51,7 +50,7 @@ func (di *Database) ImportFromJSON(path string) error {
 	close(entriesChan)
 	wg.Wait()
 
-	log.Printf("Dictionary import completed. Processed %d entries in %v", len(source.Words), time.Since(startTime))
+	fmt.Printf("Dictionary import completed. Processed %d entries in %v\n", len(source.Words), time.Since(startTime))
 	return nil
 }
 

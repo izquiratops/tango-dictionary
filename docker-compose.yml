@@ -12,7 +12,7 @@ services:
     networks:
       - happy-net
     volumes:
-      - ${TANGO_BLEVE_PATH}:/root
+      - ${TANGO_JMDICT_SOURCE_PATH}:/app/jmdict_source
     environment:
       - TANGO_VERSION=${TANGO_VERSION}
       - TANGO_REBUILD=${TANGO_REBUILD}
