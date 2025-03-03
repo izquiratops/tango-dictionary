@@ -5,15 +5,13 @@ services:
     image: izquiratops/tango:latest
     ports:
       - "8080:8080"
-      - "80:80"
-      - "443:443"
     networks:
       - happy-net
     volumes:
-      - ${TANGO_JMDICT_SOURCE_PATH}:/app/jmdict_source
+      - ./jmdict_source:/app/jmdict_source
     environment:
-      - TANGO_VERSION=${TANGO_VERSION}
-      - TANGO_REBUILD=${TANGO_REBUILD}
+      - TANGO_VERSION=3.6.1
+      - TANGO_REBUILD=true
     command: ["./app/tango"]
 
   mongo:
