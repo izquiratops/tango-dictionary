@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.4
-	go.mongodb.org/mongo-driver v1.17.2
+	go.mongodb.org/mongo-driver v1.17.3
 )
 
 require (
