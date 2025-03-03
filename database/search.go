@@ -14,6 +14,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	defaultSearchSize = 20
+	defaultSearchFrom = 0
+)
+
 func (di *Database) Search(query string) ([]EntryDatabase, error) {
 	ids, err := performBleveQuery(query, di)
 	if err != nil {
