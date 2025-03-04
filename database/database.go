@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"tango/types"
 
@@ -76,16 +77,20 @@ func setupBleve(dbVersion string, rebuildDatabase bool) (bleve.Index, error) {
 
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
-	bleveFilename := fmt.Sprintf("./jmdict_source/jmdict_%v.bleve", dbVersion)
-	fmt.Printf("Bleve Index used: %v\n", bleveFilename)
+	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
+	blevePath, err := filepath.Abs(filepath.Join("jmdict_source", bleveFilename))
+	if err != nil {
+		return nil, fmt.Errorf("error getting absolute path for Bleve index: %v", err)
+	}
+	fmt.Printf("Bleve Index used: %v\n", blevePath)
 
 	if rebuildDatabase {
-		os.RemoveAll(bleveFilename)
+		os.RemoveAll(blevePath)
 	}
 
-	bleveIndex, err := bleve.New(bleveFilename, indexMapping)
+	bleveIndex, err := bleve.New(blevePath, indexMapping)
 	if err != nil {
-		bleveIndex, err = bleve.Open(bleveFilename)
+		bleveIndex, err = bleve.Open(blevePath)
 		if err != nil {
 			return nil, fmt.Errorf("error creating/opening Bleve index: %v", err)
 		}

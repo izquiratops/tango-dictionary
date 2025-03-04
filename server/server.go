@@ -25,6 +25,7 @@ type SearchData struct {
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Serve file safely
 	http.ServeFile(w, r, "./server/template/index.html")
 }
 

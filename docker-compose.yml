@@ -3,26 +3,34 @@ version: '3.8'
 services:
   app:
     image: izquiratops/tango:latest
+    restart: unless-stopped
     ports:
       - "8080:8080"
     networks:
-      - happy-net
+      - tango-net
     volumes:
       - ./jmdict_source:/app/jmdict_source
-    environment:
-      - TANGO_VERSION=3.6.1
-      - TANGO_REBUILD=true
+    env_file:
+      - .env
     command: ["./app/tango"]
 
   mongo:
     image: mongo:latest
+    restart: unless-stopped
     networks:
-      - happy-net
+      - tango-net
     volumes:
       - mongodb_data:/data/db
 
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 86400 --cleanup # every 24 hours
+
 networks:
-  happy-net:
+  tango-net:
     driver: bridge
 
 volumes:

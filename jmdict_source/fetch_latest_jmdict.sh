@@ -18,22 +18,20 @@ LATEST_RELEASE=$(echo "$JSON_RESPONSE" | jq '.assets[] | select(.name | test("jm
 if [ -z "$LATEST_RELEASE" ]; then
     echo "No matching item found."
 else
-    # Log the release name
     echo "Matching item name: $LATEST_RELEASE"
-
-    # Download and uncompress the file
     BROWSER_DOWNLOAD_URL=$(echo "$LATEST_RELEASE" | jq -r '.browser_download_url')
 
     # Follow HTTP redirections (301) https://askubuntu.com/a/1036492
-    curl -sL -H 'Accept-encoding: gzip' "$BROWSER_DOWNLOAD_URL" -o jmdict.zip
+    TMP_FILE="jmdict.zip"
+    curl -sL -H 'Accept-encoding: gzip' "$BROWSER_DOWNLOAD_URL" -o "$TMP_FILE"
 
-    # Unzip based on OS
     if [ "$OS" = "UNIX" ]; then
         echo "Extracting with unzip..."
-        unzip -o jmdict.zip
+        unzip -o "$TMP_FILE"
     else
+        # Trying to unzip it with PowerShell using tar -xf doesn't work and I don't know why!
         echo "Extracting with PowerShell..."
-        powershell -command "Expand-Archive -Path jmdict.zip -DestinationPath . -Force"
+        powershell -command "Expand-Archive -Path "$TMP_FILE" -DestinationPath . -Force"
     fi
 
     # Zip is not needed anymore 💫

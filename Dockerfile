@@ -30,5 +30,4 @@ COPY --from=builder /app/server/template /app/server/template
 
 EXPOSE 8080
 
-# Set the entrypoint only, let docker-compose handle the command
 ENTRYPOINT ["/app/tango"]
