@@ -2,14 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Main",
+            "name": "Launch Import",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}",
+            "program": "${workspaceFolder}/import"
+        },
+        {
+            "name": "Launch Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/client",
             "env": {
                 "TANGO_VERSION": "3.6.1",
-                "TANGO_REBUILD": "true",
                 "TANGO_LOCAL": "true",
             }
         }

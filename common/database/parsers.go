@@ -2,12 +2,13 @@ package database
 
 import (
 	"encoding/json"
-	"tango/utils"
+
+	"github.com/izquiratops/tango/common/utils"
 )
 
-func (be *EntrySearchable) UnmarshalJSON(data []byte) error {
+func (be *WordSearchable) UnmarshalJSON(data []byte) error {
 	// Define a temporary struct to unmarshal the JSON data
-	type Alias EntrySearchable
+	type Alias WordSearchable
 	temp := &struct {
 		KanjiExact interface{} `json:"kanji_exact"`
 		KanjiChar  interface{} `json:"kanji_char"`

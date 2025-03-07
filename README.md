@@ -9,6 +9,4 @@ This project use the content provided by [JMDict Simplified](https://github.com/
 
 - **TANGO_VERSION**: This is the version number of JMDict and must follow the semantic versioning rules.
 
-- **TANGO_REBUILD**: When set to true will clear any existing data matching TANGO_VERSION and import a fresh dictionary from scratch. When enabled, the importer looks for the JSON source file `jmdict_source/jmdict-eng-{$TANGO_VERSION}.json`.
-
 - **TANGO_LOCAL**: A flag to set the MongoDB connection to a local instance.

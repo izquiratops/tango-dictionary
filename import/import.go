@@ -1,4 +1,4 @@
-package database
+package main
 
 import (
 	"context"
@@ -6,19 +6,34 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"tango/jmdict"
 	"time"
+
+	"github.com/izquiratops/tango/common/database"
+	"github.com/izquiratops/tango/common/jmdict"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (di *Database) ImportFromJSON(path string) error {
+const (
+	numWorkers = 3
+	batchSize  = 1000
+)
+
+func Import(path string, db *database.Database) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
+
+	// Clear Mongo Collections before start importing data
+	if err := db.MongoWords.Drop(context.Background()); err != nil {
+		return fmt.Errorf("error dropping table words")
+	}
+	if err := db.MongoTags.Drop(context.Background()); err != nil {
+		return fmt.Errorf("error dropping table tags")
+	}
 
 	var source jmdict.JMdict
 	decoder := json.NewDecoder(file)
@@ -26,14 +41,13 @@ func (di *Database) ImportFromJSON(path string) error {
 		return fmt.Errorf("error decoding JSON: %v", err)
 	}
 
-	entriesChan := make(chan jmdict.JMdictWord, di.batchSize)
+	entriesChan := make(chan jmdict.JMdictWord, batchSize)
 	errorsChan := make(chan error, 1)
 	var wg sync.WaitGroup
 
-	numWorkers := 3
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go bulkImportJmdictEntries(entriesChan, errorsChan, &wg, di)
+		go bulkImportJmdictEntries(entriesChan, errorsChan, &wg, db)
 	}
 
 	startTime := time.Now()
@@ -54,16 +68,16 @@ func (di *Database) ImportFromJSON(path string) error {
 	return nil
 }
 
-func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<- error, wg *sync.WaitGroup, di *Database) {
+func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<- error, wg *sync.WaitGroup, di *database.Database) {
 	defer wg.Done()
 
 	ctx := context.Background()
-	mongoBatch := make([]mongo.WriteModel, 0, di.batchSize)
-	bleveBatch := di.bleveIndex.NewBatch()
+	mongoBatch := make([]mongo.WriteModel, 0, batchSize)
+	bleveBatch := di.BleveIndex.NewBatch()
 
 	for jsonEntry := range jsonEntries {
 		// Save it as DatabaseEntry
-		dbEntry := ToEntryDatabase(&jsonEntry)
+		dbEntry := ToWord(&jsonEntry)
 
 		// Prepare MongoDB
 		bsonData, err := bson.Marshal(dbEntry)
@@ -76,7 +90,7 @@ func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<-
 		mongoBatch = append(mongoBatch, model)
 
 		// Prepare Bleve
-		bleveEntry, err := ToEntrySearchable(&jsonEntry)
+		bleveEntry, err := ToWordSearchable(&jsonEntry)
 		if err != nil {
 			errors <- err
 			return
@@ -87,32 +101,30 @@ func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<-
 			return
 		}
 
-		if len(mongoBatch) >= di.batchSize {
-			// MongoDB bulk write
-			if _, err := di.mongoWords.BulkWrite(ctx, mongoBatch); err != nil {
+		if len(mongoBatch) >= batchSize {
+			if _, err := di.MongoWords.BulkWrite(ctx, mongoBatch); err != nil {
 				errors <- fmt.Errorf("error writing to MongoDB: %v", err)
 				return
 			}
 
-			// Bleve batch write
-			if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+			if err := di.BleveIndex.Batch(bleveBatch); err != nil {
 				errors <- fmt.Errorf("error writing to Bleve: %v", err)
 				return
 			}
 
 			mongoBatch = mongoBatch[:0]
-			bleveBatch = di.bleveIndex.NewBatch()
+			bleveBatch = di.BleveIndex.NewBatch()
 		}
 	}
 
 	// Process last batch. This runs the batch if mongoBatch never reached the batchSize threshold
 	if len(mongoBatch) > 0 {
-		if _, err := di.mongoWords.BulkWrite(ctx, mongoBatch); err != nil {
+		if _, err := di.MongoWords.BulkWrite(ctx, mongoBatch); err != nil {
 			errors <- fmt.Errorf("error writing final batch to MongoDB: %v", err)
 			return
 		}
 
-		if err := di.bleveIndex.Batch(bleveBatch); err != nil {
+		if err := di.BleveIndex.Batch(bleveBatch); err != nil {
 			errors <- fmt.Errorf("error writing final batch to Bleve: %v", err)
 			return
 		}

@@ -1,18 +1,28 @@
 version: '3.8'
 
 services:
-  app:
+  client:
     image: izquiratops/tango:latest
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     networks:
       - tango-net
     volumes:
-      - ./jmdict_source:/app/jmdict_source
+      - ./jmdict_source:/client/jmdict_source
     env_file:
       - .env
-    command: ["./app/tango"]
+
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - tango-net
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
 
   mongo:
     image: mongo:latest
@@ -27,7 +37,7 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 86400 --cleanup # every 24 hours
+    command: --interval 86400 --cleanup
 
 networks:
   tango-net:
@@ -35,3 +45,5 @@ networks:
 
 volumes:
   mongodb_data:
+  caddy_data:
+  caddy_config:

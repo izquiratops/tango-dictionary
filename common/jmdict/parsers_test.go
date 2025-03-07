@@ -2,8 +2,9 @@ package jmdict
 
 import (
 	"encoding/json"
-	"tango/utils"
 	"testing"
+
+	"github.com/izquiratops/tango/common/utils"
 )
 
 func TestUnmarshalXRef(t *testing.T) {

@@ -3,7 +3,8 @@ package jmdict
 import (
 	"encoding/json"
 	"fmt"
-	"tango/utils"
+
+	"github.com/izquiratops/tango/common/utils"
 )
 
 // Xref is a struct that can be 4 different kinds:

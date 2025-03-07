@@ -1,16 +1,18 @@
-package database
+package main
 
 import (
 	"reflect"
-	"tango/jmdict"
 	"testing"
+
+	"github.com/izquiratops/tango/common/database"
+	"github.com/izquiratops/tango/common/jmdict"
 )
 
-func TestToEntryDatabase(t *testing.T) {
+func TestToWord(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    jmdict.JMdictWord
-		expected EntryDatabase
+		expected database.Word
 	}{
 		{
 			name: "Test: 暖かい",
@@ -61,9 +63,9 @@ func TestToEntryDatabase(t *testing.T) {
 					},
 				},
 			},
-			expected: EntryDatabase{
-				MainWord: Furigana{Word: "暖かい", Reading: "あたたかい"},
-				OtherForms: []Furigana{
+			expected: database.Word{
+				MainWord: database.Furigana{Word: "暖かい", Reading: "あたたかい"},
+				OtherForms: []database.Furigana{
 					{Word: "温かい", Reading: "あたたかい"},
 					{Word: "暖かい", Reading: "あったかい"},
 					{Word: "温かい", Reading: "あったかい"},
@@ -80,7 +82,7 @@ func TestToEntryDatabase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ToEntryDatabase(&tt.input)
+			got := ToWord(&tt.input)
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("ProcessEntries() = %v, want %v", got, tt.expected)
 			}

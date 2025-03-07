@@ -1,13 +1,15 @@
-package database
+package main
 
 import (
 	"strings"
-	"tango/jmdict"
-	"tango/utils"
+
+	"github.com/izquiratops/tango/common/database"
+	"github.com/izquiratops/tango/common/jmdict"
+	"github.com/izquiratops/tango/common/utils"
 )
 
-func ToEntryDatabase(word *jmdict.JMdictWord) EntryDatabase {
-	entry := EntryDatabase{
+func ToWord(word *jmdict.JMdictWord) database.Word {
+	entry := database.Word{
 		ID: word.ID,
 	}
 
@@ -22,7 +24,7 @@ func ToEntryDatabase(word *jmdict.JMdictWord) EntryDatabase {
 	return entry
 }
 
-func processKanjiWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
+func processKanjiWord(entry *database.Word, word *jmdict.JMdictWord) {
 	for _, kana := range word.Kana {
 		if utils.ContainsString(kana.Tags, "sK") {
 			continue
@@ -35,7 +37,7 @@ func processKanjiWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
 
 			for _, kanjiApplied := range kana.AppliesToKanji {
 				if kanjiApplied == kanji.Text || kanjiApplied == "*" {
-					furigana := Furigana{
+					furigana := database.Furigana{
 						Word:    kanji.Text,
 						Reading: kana.Text,
 					}
@@ -52,9 +54,9 @@ func processKanjiWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
 	}
 }
 
-func processKanaOnlyWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
+func processKanaOnlyWord(entry *database.Word, word *jmdict.JMdictWord) {
 	for i, kana := range word.Kana {
-		furigana := Furigana{
+		furigana := database.Furigana{
 			Word:    kana.Text,
 			Reading: "",
 		}
@@ -68,7 +70,7 @@ func processKanaOnlyWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
 	}
 }
 
-func processSenseWord(entry *EntryDatabase, word *jmdict.JMdictWord) {
+func processSenseWord(entry *database.Word, word *jmdict.JMdictWord) {
 	for _, sense := range word.Sense {
 		var glossList []string
 		for _, g := range sense.Gloss {

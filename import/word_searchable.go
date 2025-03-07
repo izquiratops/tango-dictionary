@@ -1,12 +1,14 @@
-package database
+package main
 
 import (
 	"fmt"
-	"tango/jmdict"
+
+	"github.com/izquiratops/tango/common/database"
+	"github.com/izquiratops/tango/common/jmdict"
 )
 
-func ToEntrySearchable(d *jmdict.JMdictWord) (EntrySearchable, error) {
-	entry := EntrySearchable{
+func ToWordSearchable(d *jmdict.JMdictWord) (database.WordSearchable, error) {
+	entry := database.WordSearchable{
 		ID:         d.ID, // ID not indexed
 		KanjiExact: make([]string, 0),
 		KanjiChar:  make([]string, 0),

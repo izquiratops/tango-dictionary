@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"tango/server"
+
+	"github.com/izquiratops/tango/client/server"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 func main() {
 	server, err := server.NewServer()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "couldn't initialize the server: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't initialize the server: %v\n", err)
 		os.Exit(1)
 	}
 

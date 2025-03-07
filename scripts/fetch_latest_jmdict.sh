@@ -12,8 +12,7 @@ fi
 
 JSON_RESPONSE=$(curl -s https://api.github.com/repos/scriptin/jmdict-simplified/releases/latest)
 
-# Matches any string that starts with "jmdict-eng-common-" followed by any characters. Must end with .zip too.
-LATEST_RELEASE=$(echo "$JSON_RESPONSE" | jq '.assets[] | select(.name | test("jmdict-eng-common-.*\\.zip"))')
+LATEST_RELEASE=$(echo "$JSON_RESPONSE" | jq '.assets[] | select(.name | test("jmdict-eng-[0-9].*\\.zip"))')
 
 if [ -z "$LATEST_RELEASE" ]; then
     echo "No matching item found."

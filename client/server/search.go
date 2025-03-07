@@ -1,4 +1,4 @@
-package database
+package server
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
+	"github.com/izquiratops/tango/common/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -19,20 +20,19 @@ const (
 	defaultSearchFrom = 0
 )
 
-func (di *Database) Search(query string) ([]EntryDatabase, error) {
-	ids, err := performBleveQuery(query, di)
+func (s *Server) search(query string) ([]database.Word, error) {
+	ids, err := performBleveQuery(query, s.db)
 	if err != nil {
 		log.Printf("Failed to run Bleve query: %v", err)
 		return nil, err
 	}
 
 	if len(ids) == 0 {
-		// Define a specific error for empty results
-		emptyResultsErr := errors.New("no results found")
+		emptyResultsErr := errors.New("EMPTY_LIST")
 		return nil, emptyResultsErr
 	}
 
-	results, err := fetchWordsByIDs(ids, di)
+	results, err := fetchWordsByIDs(ids, s.db)
 	if err != nil {
 		log.Printf("Failed to run MongoDB find: %v", err)
 		return nil, err
@@ -42,7 +42,7 @@ func (di *Database) Search(query string) ([]EntryDatabase, error) {
 }
 
 // Code related to Bleve
-func performBleveQuery(query string, di *Database) ([]string, error) {
+func performBleveQuery(query string, db *database.Database) ([]string, error) {
 	meaningsQuery := bleve.NewTermQuery(query)
 	meaningsQuery.SetField("meanings")
 
@@ -66,7 +66,7 @@ func performBleveQuery(query string, di *Database) ([]string, error) {
 	searchRequest.Size = defaultSearchSize
 	searchRequest.From = defaultSearchFrom
 
-	searchResults, err := di.bleveIndex.Search(searchRequest)
+	searchResults, err := db.BleveIndex.Search(searchRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search Bleve index: %w", err)
 	}
@@ -108,7 +108,7 @@ func extractBleveResult(searchResults *bleve.SearchResult) []string {
 	var ids []string // List of Ids for every query hit
 
 	for _, hit := range searchResults.Hits {
-		var entry EntrySearchable
+		var entry database.WordSearchable
 
 		// Serialize the map to a JSON byte slice
 		jsonBytes, err := json.Marshal(hit.Fields)
@@ -130,7 +130,7 @@ func extractBleveResult(searchResults *bleve.SearchResult) []string {
 }
 
 // Code related to MongoDB
-func fetchWordsByIDs(ids []string, di *Database) ([]EntryDatabase, error) {
+func fetchWordsByIDs(ids []string, db *database.Database) ([]database.Word, error) {
 	ctx := context.Background()
 
 	filter := bson.M{
@@ -139,7 +139,7 @@ func fetchWordsByIDs(ids []string, di *Database) ([]EntryDatabase, error) {
 		},
 	}
 
-	cursor, err := di.mongoWords.Find(ctx, filter)
+	cursor, err := db.MongoWords.Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
 	}
@@ -156,10 +156,10 @@ func fetchWordsByIDs(ids []string, di *Database) ([]EntryDatabase, error) {
 	return sortedResults, nil
 }
 
-func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]EntryDatabase, error) {
-	var results []EntryDatabase
+func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]database.Word, error) {
+	var results []database.Word
 	for cursor.Next(ctx) {
-		var result EntryDatabase
+		var result database.Word
 		if err := cursor.Decode(&result); err != nil {
 			return nil, fmt.Errorf("failed to decode document: %w", err)
 		}
@@ -173,7 +173,7 @@ func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]EntryData
 	return results, nil
 }
 
-func sortWords(results []EntryDatabase, targetOrder []string) []EntryDatabase {
+func sortWords(results []database.Word, targetOrder []string) []database.Word {
 	sort.SliceStable(results, func(i, j int) bool {
 		for _, id := range targetOrder {
 			if results[i].ID == id {
