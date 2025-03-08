@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/izquiratops/tango/common/database"
@@ -57,21 +56,13 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 		Query:   query,
 		Results: results,
 	}
-	if err := s.renderTemplate(w, tmpl, data); err != nil {
+	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("Template rendering error: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	duration := time.Since(startTime)
 	fmt.Printf("Served search '%s' in %v\n", query, duration)
-}
-
-func (s *Server) renderTemplate(w http.ResponseWriter, tmpl *template.Template, data interface{}) error {
-	if err := tmpl.Execute(w, data); err != nil {
-		fmt.Printf("Template execution error: %v\n", err)
-		return err
-	}
-	return nil
 }
 
 func (s *Server) SetupRoutes() *http.ServeMux {
@@ -90,36 +81,7 @@ func (s *Server) SetupRoutes() *http.ServeMux {
 	return mux
 }
 
-func loadEnvironmentConfig() (types.ServerConfig, error) {
-	jmdictVersion := os.Getenv("TANGO_VERSION")
-	if jmdictVersion == "" {
-		return types.ServerConfig{}, fmt.Errorf("TANGO_VERSION environment variable must be set")
-	}
-
-	isLocalEnvironment := utils.ResolveBooleanFromEnv("TANGO_LOCAL")
-	mongoURI := map[bool]string{
-		true:  "mongodb://localhost:27017",
-		false: "mongodb://mongo:27017", // The docker service is currently called "mongo"
-	}[isLocalEnvironment]
-
-	return types.ServerConfig{
-		JmdictVersion: jmdictVersion,
-		MongoURI:      mongoURI,
-	}, nil
-}
-
-func NewServer() (*Server, error) {
-	config, err := loadEnvironmentConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
-	fmt.Printf("\nInitializing server...\n")
-	fmt.Printf("----------- Config values ----------\n")
-	fmt.Printf("JMDict Version: %s\n", config.JmdictVersion)
-	fmt.Printf("Mongo connection Uri: %v\n", config.MongoURI)
-	fmt.Printf("------------------------------------\n")
-
+func NewServer(config types.ServerConfig) (*Server, error) {
 	db, err := database.NewDatabase(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)

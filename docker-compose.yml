@@ -27,10 +27,14 @@ services:
   mongo:
     image: mongo:latest
     restart: unless-stopped
+    ports:
+      - 27017:27017
     networks:
       - tango-net
     volumes:
       - mongodb_data:/data/db
+    env_file:
+      - .env
 
   watchtower:
     image: containrrr/watchtower

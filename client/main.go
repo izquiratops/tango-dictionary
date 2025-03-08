@@ -6,14 +6,24 @@ import (
 	"os"
 
 	"github.com/izquiratops/tango/client/server"
+	"github.com/izquiratops/tango/common/utils"
 )
 
-const (
-	addr = "0.0.0.0:8080"
-)
+var mongoDomainMap = map[bool]string{
+	true:  "localhost",
+	false: "mongo",
+}
 
 func main() {
-	server, err := server.NewServer()
+	config, err := utils.LoadEnvironmentConfig(mongoDomainMap)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\nInitializing server...\n")
+
+	server, err := server.NewServer(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't initialize the server: %v\n", err)
 		os.Exit(1)
@@ -21,8 +31,8 @@ func main() {
 
 	mux := server.SetupRoutes()
 
-	fmt.Printf("Server listening at %s\n", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	fmt.Printf("Server listening at 0.0.0.0:8080\n")
+	if err := http.ListenAndServe("0.0.0.0:8080", mux); err != nil {
 		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
 		os.Exit(1)
 	}

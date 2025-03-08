@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/izquiratops/tango/common/database"
 	"github.com/izquiratops/tango/common/jmdict"
+	"github.com/izquiratops/tango/common/types"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,25 +22,29 @@ const (
 	batchSize  = 1000
 )
 
-func Import(path string, db *database.Database) error {
-	file, err := os.Open(path)
+func Import(db *database.Database, config types.ServerConfig) (string, error) {
+	jsonFilename := fmt.Sprintf("jmdict-eng-%v.json", config.JmdictVersion)
+	jsonPath := filepath.Join("..", "jmdict_source", jsonFilename)
+
+	file, err := os.Open(jsonPath)
 	if err != nil {
-		return fmt.Errorf("error opening file: %v", err)
+		return "", fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
 
+	// TODO: Throw if can't connect to mongo db
 	// Clear Mongo Collections before start importing data
 	if err := db.MongoWords.Drop(context.Background()); err != nil {
-		return fmt.Errorf("error dropping table words")
+		return "", fmt.Errorf("error dropping table words")
 	}
 	if err := db.MongoTags.Drop(context.Background()); err != nil {
-		return fmt.Errorf("error dropping table tags")
+		return "", fmt.Errorf("error dropping table tags")
 	}
 
 	var source jmdict.JMdict
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&source); err != nil {
-		return fmt.Errorf("error decoding JSON: %v", err)
+		return "", fmt.Errorf("error decoding JSON: %v", err)
 	}
 
 	entriesChan := make(chan jmdict.JMdictWord, batchSize)
@@ -55,7 +61,7 @@ func Import(path string, db *database.Database) error {
 		select {
 		case err := <-errorsChan:
 			close(entriesChan)
-			return fmt.Errorf("worker error: %v", err)
+			return "", fmt.Errorf("worker error: %v", err)
 		default:
 			entriesChan <- entry
 		}
@@ -65,7 +71,7 @@ func Import(path string, db *database.Database) error {
 	wg.Wait()
 
 	fmt.Printf("Dictionary import completed. Processed %d entries in %v\n", len(source.Words), time.Since(startTime))
-	return nil
+	return jsonPath, nil
 }
 
 func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<- error, wg *sync.WaitGroup, di *database.Database) {

@@ -78,11 +78,7 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
-	blevePath, err := filepath.Abs(filepath.Join("..", "jmdict_source", bleveFilename))
-	if err != nil {
-		return nil, fmt.Errorf("error getting absolute path for Bleve index: %v", err)
-	}
-
+	blevePath := filepath.Join("..", "jmdict_source", bleveFilename)
 	bleveIndex, err := bleve.New(blevePath, indexMapping)
 	if err != nil {
 		bleveIndex, err = bleve.Open(blevePath)
