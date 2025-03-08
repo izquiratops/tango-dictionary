@@ -23,6 +23,7 @@ type SearchData struct {
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	templatePath, _ := utils.GetAbsolutePath("template/index.html")
+	fmt.Printf("Index template path: %s\n", templatePath)
 	http.ServeFile(w, r, templatePath)
 }
 
@@ -31,7 +32,6 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 	results, err := s.search(query)
 
-	// Choose template based on results
 	var templatePath string
 	if err != nil {
 		if err.Error() == "EMPTY_LIST" {

@@ -1,6 +1,7 @@
 package types
 
 type ServerConfig struct {
-	JmdictVersion string
-	MongoURI      string
+	JmdictVersion  string
+	MongoURI       string
+	MongoRunsLocal bool
 }

@@ -9,7 +9,7 @@ This project use the content provided by [JMDict Simplified](https://github.com/
 
 - **TANGO_VERSION**: This is the version number of JMDict and must follow the semantic versioning rules.
 
-- **TANGO_LOCAL**: A flag to set the MongoDB connection to a local instance.
+- **TANGO_MONGO_RUNS_LOCAL**: A flag to set the MongoDB connection to a local instance.
 
 - **MONGO_INITDB_ROOT_USERNAME**
 

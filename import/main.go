@@ -36,6 +36,8 @@ func main() {
 	fmt.Printf("✅ IMPORT COMPLETED SUCCESSFULLY!\n")
 	fmt.Printf("==============================================\n\n")
 	fmt.Printf("The Bleve index was created in: %s\n", jsonPath)
-	fmt.Printf("\nNext step: Upload the index to your server using SCP:\n")
-	fmt.Printf("scp -r ./jmdict_source/jmdict_X.Y.Z.bleve user@example.com:/root/jmdict_source\n\n")
+	if !config.MongoRunsLocal {
+		fmt.Printf("\nNext step: Upload the index to your server using SCP:\n")
+		fmt.Printf("scp -r ./jmdict_source/jmdict_X.Y.Z.bleve user@example.com:jmdict_source\n\n")
+	}
 }

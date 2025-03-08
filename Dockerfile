@@ -18,11 +18,9 @@ RUN go build -ldflags "-w" -o run main.go
 # Stage 2: Create the Client image
 FROM alpine:latest
 
-WORKDIR /
-COPY --from=builder /root/client/run /client/run
-COPY --from=builder /root/client/static /client/static
-COPY --from=builder /root/client/template /client/template
+WORKDIR /root/client
+COPY --from=builder /root/client/run ./run
 
 EXPOSE 8080
 
-ENTRYPOINT ["/client/run"]
+ENTRYPOINT ["./run"]

@@ -21,7 +21,8 @@ func LoadEnvironmentConfig(mongoDomainMap map[bool]string) (types.ServerConfig, 
 
 	mongoUser := os.Getenv("MONGO_INITDB_ROOT_USERNAME")
 	mongoPassword := os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
-	mongoDomain := mongoDomainMap[resolveBooleanFromEnv("TANGO_LOCAL")]
+	mongoRunsLocal := resolveBooleanFromEnv("TANGO_MONGO_RUNS_LOCAL")
+	mongoDomain := mongoDomainMap[mongoRunsLocal]
 
 	mongoURI := ""
 	if mongoUser != "" && mongoPassword != "" {
@@ -31,7 +32,8 @@ func LoadEnvironmentConfig(mongoDomainMap map[bool]string) (types.ServerConfig, 
 	}
 
 	return types.ServerConfig{
-		JmdictVersion: jmdictVersion,
-		MongoURI:      mongoURI,
+		JmdictVersion:  jmdictVersion,
+		MongoURI:       mongoURI,
+		MongoRunsLocal: mongoRunsLocal,
 	}, nil
 }

@@ -1,9 +1,10 @@
 name: Build Docker Image on Release
 
 on:
-  release:
-    types:
-      - created
+  push:
+      branches:
+        - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,6 +26,5 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: backend
           push: true
           tags: izquiratops/tango:latest

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   client:
     image: izquiratops/tango:latest
@@ -7,7 +5,9 @@ services:
     networks:
       - tango-net
     volumes:
-      - ./jmdict_source:/client/jmdict_source
+      - ./jmdict_source:/root/jmdict_source
+      - ./static:/root/client/static
+      - ./template:/root/client/template
     env_file:
       - .env
 
