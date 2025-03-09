@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -43,7 +44,7 @@ func (s *Server) search(query string) ([]database.Word, error) {
 
 // Code related to Bleve
 func performBleveQuery(query string, db *database.Database) ([]string, error) {
-	meaningsQuery := bleve.NewTermQuery(query)
+	meaningsQuery := bleve.NewTermQuery(strings.ToLower(query))
 	meaningsQuery.SetField("meanings")
 
 	kanaBooleanQuery := newJapaneseFieldQuery(query, "kana_exact", "kana_char")

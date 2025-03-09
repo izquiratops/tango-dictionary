@@ -23,7 +23,6 @@ type SearchData struct {
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	templatePath, _ := utils.GetAbsolutePath("template/index.html")
-	fmt.Printf("Index template path: %s\n", templatePath)
 	http.ServeFile(w, r, templatePath)
 }
 

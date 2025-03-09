@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/izquiratops/tango/common/types"
-	"github.com/izquiratops/tango/common/utils"
 
 	"github.com/blevesearch/bleve/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -80,8 +79,6 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
 	blevePath := filepath.Join("..", "jmdict_source", bleveFilename)
-	absBlevePath, _ := utils.GetAbsolutePath(blevePath)
-	fmt.Printf("Bleve path: %s\n", absBlevePath)
 	bleveIndex, err := bleve.New(blevePath, indexMapping)
 	if err != nil {
 		bleveIndex, err = bleve.Open(blevePath)
