@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/izquiratops/tango/common/database"
@@ -12,8 +15,9 @@ import (
 )
 
 type Server struct {
-	db     *database.Database
-	config types.ServerConfig
+	db           *database.Database
+	config       types.ServerConfig
+	staticPrefix http.Handler
 }
 
 type SearchData struct {
@@ -64,18 +68,36 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Served search '%s' in %v\n", query, duration)
 }
 
+func (s *Server) staticFileHandler(w http.ResponseWriter, r *http.Request) {
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		path := strings.TrimPrefix(r.URL.Path, "/static/")
+		gzPath := filepath.Join("static", path+".gz")
+
+		if _, err := os.Stat(gzPath); err == nil {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Content-Type", getContentType(path))
+			http.ServeFile(w, r, gzPath)
+			return
+		}
+	}
+
+	// Fall back to the original file server if no compressed version exists
+	// or if the client doesn't accept gzip
+	s.staticPrefix.ServeHTTP(w, r)
+}
+
 func (s *Server) SetupRoutes() *http.ServeMux {
 	fmt.Printf("Setting up routes...\n")
 
 	staticSystem := http.Dir("static")
 	staticServer := http.FileServer(staticSystem)
-	staticPrefix := http.StripPrefix("/static", staticServer)
+	s.staticPrefix = http.StripPrefix("/static", staticServer)
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", s.indexHandler)
 	mux.HandleFunc("GET /search", s.searchHandler)
-	mux.Handle("GET /static/", staticPrefix)
+	mux.HandleFunc("GET /static/", s.staticFileHandler)
 
 	return mux
 }

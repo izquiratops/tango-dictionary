@@ -4,15 +4,17 @@
 <head>
     <title>Tango: {{.Query}}</title>
     <link rel="stylesheet" href="./static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
-    <h1><a id="title" href="/" title="Go Home">Tango 🎋</a></h1>
+    <header>
+        <h1><a id="title" href="/" title="Go Home">Tango 🎋</a></h1>
+    </header>
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
-        <input type="submit" value="Search">
     </form>
-    <h3 class="search">{{.Query}}</h3>
+    <h2 class="search">{{.Query}}</h2>
     <ul class="bottom_spaced">
         {{range .Results}}
         <li class="entry">

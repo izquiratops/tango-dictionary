@@ -1,9 +1,9 @@
 :root {
     --primary-color: #89AC46;
-    --primary-alt-color: #D3E671;
-    --secondary-color: #F8ED8C;
-    --tertiary-color: #FF8989;
-    --background-color: #FBF6E9;
+    --secondary-color: #D3E671;
+    --tertiary-color: #F8ED8C;
+    --background-color: #FBFFDC;
+    --foreground-color: #000000;
 
     /* Spacing */
     --spacing-xxs: 2px;
@@ -15,12 +15,13 @@
     --spacing-xxl: 40px;
 
     /* Font sizes */
-    --font-size-small: 0.875rem;
-    --font-size-medium: 1rem;
-    --font-size-large: 1.6rem;
+    --font-size-small: 0.8em;
+    --font-size-medium: 12pt;
+    --font-size-large: 1.15em;
+    --font-size-extra-large: 1.4em;
 
     /* Container widths */
-    --container-width: 800px;
+    --container-width: 900px;
 }
 
 @font-face {
@@ -41,42 +42,64 @@
     font-weight: 200;
 }
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: var(--background-color);
+html {
+    overflow-y: scroll;
+    /* prevents browsers from automatically adjusting text size on mobile devices when the page orientation changes or when zooming */
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+}
+
+body,
+input,
+button {
     font-family: NotoSansJP, serif;
+    font-size: var(--font-size-medium);
     font-weight: 400;
     font-style: normal;
+    color: var(--foreground-color);
+    line-height: 1.4em;
 }
 
 body {
+    background-color: var(--background-color);
     margin: 0 auto;
-    padding: 0 var(--spacing-md);
     max-width: var(--container-width);
-    font-size: var(--font-size-medium);
-    line-height: 1.6;
+    padding-inline: var(--spacing-sm);
+    padding-bottom: var(--spacing-xxl);
+}
+
+a {
+    cursor: pointer;
+    color: var(--primary-color);
+}
+
+h1 {
+    line-height: 1.2em;
+}
+
+h2 {
+    font-size: var(--font-size-large);
 }
 
 ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 form {
     display: flex;
-    gap: var(--spacing-md);
-}
-
-input[type="text"], input[type="submit"] {
-    font-size: var(--font-size-medium);
-    padding: var(--spacing-xs);
+    gap: var(--spacing-sm);
 }
 
 input[type="text"] {
-    flex: 1;
+    width: 100%;
+    font-size: var(--font-size-medium);
+    color: #000000;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--spacing-xs);
 }
 
 .search::before {
@@ -95,7 +118,7 @@ input[type="text"] {
 .word {
     grid-row: 1;
     grid-column: 1 / -1;
-    font-size: var(--font-size-large);
+    font-size: var(--font-size-extra-large);
 }
 
 .tags {
@@ -112,7 +135,6 @@ input[type="text"] {
     --b: 2px;
 
     background: var(--primary-color);
-    opacity: 0.5;
     width: calc(var(--b) + var(--s)/(2*tan(var(--a)/2)));
     --_g: 100% var(--s) repeat-y conic-gradient(from calc(90deg - var(--a)/2) at left,
             #0000,
@@ -127,6 +149,7 @@ input[type="text"] {
     padding-inline-start: var(--spacing-md);
 
     counter-reset: item;
+
     li:before {
         content: counter(item) ". ";
         counter-increment: item;
@@ -141,11 +164,7 @@ input[type="text"] {
     padding: 0 var(--spacing-sm);
     border-radius: var(--spacing-xs);
     border: 1px solid var(--primary-color);
-    background: var(--primary-alt-color);
-}
-
-.bottom_spaced {
-    padding-bottom: var(--spacing-xxl);
+    background: var(--secondary-color);
 }
 
 #title {
@@ -158,17 +177,20 @@ input[type="text"] {
     margin-inline-start: var(--spacing-xs);
 }
 
-/* Phone */
-@media screen and (max-width: 768px) {
-    :root {
-        --container-width: 100%;
-        --font-size-small: 0.75rem;
-        --font-size-medium: 1.1rem;
-        --font-size-large: 1.5rem;
+@media screen and (min-width: 480px) {
+    body {
+        --font-size-medium: 14pt;
+        --font-size-large: 1.2em;
+        --font-size-extra-large: 1.6em;
     }
+}
 
-    .entry {
-        row-gap: var(--spacing-sm);
-        margin-block-end: var(--spacing-sm);
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-color: #4E9F3D;
+        --secondary-color: #1E5128;
+        --tertiary-color: #D8E9A8;
+        --background-color: #191919;
+        --foreground-color: #FFFFFF;
     }
 }

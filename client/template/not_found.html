@@ -4,13 +4,13 @@
 <head>
     <title>Not found 😔</title>
     <link rel="stylesheet" href="./static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
     <h1 id="title">Tango 🎋</h1>
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
-        <input type="submit" value="Search">
     </form>
     <h3>I couldn't find "{{.Query}}"</h3>
 </body>
