@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "STATIC_DIR=client/static" >> $GITHUB_ENV
           echo "COMPRESSED_DIR=client/static_compressed" >> $GITHUB_ENV
-          echo "REMOTE_SERVER=${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ env.STATIC_DIR }}" >> $GITHUB_ENV
+          echo "REMOTE_SERVER=${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:static" >> $GITHUB_ENV
       
       - name: Get modified files
         if: env.EXECUTION_MODE == 'modified'
