@@ -13,7 +13,6 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/lang/cjk"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/v2/analysis/token/ngram"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -68,25 +67,6 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 		"tokenizer": unicode.Name,
 		"token_filters": []string{
 			lowercase.Name,
-		},
-	}); err != nil {
-		return nil, err
-	}
-
-	// TODO: Remove it. Using cjk Analyzer instead
-	if err := indexMapping.AddCustomAnalyzer("japanese_ngram", map[string]interface{}{
-		"type":      custom.Name,
-		"tokenizer": unicode.Name,
-		"token_filters": []string{
-			lowercase.Name,
-			cjk.WidthName,
-		},
-		// https://github.com/blevesearch/bleve/blob/master/analysis/token/ngram/ngram.go
-		"token_maps": map[string]interface{}{
-			ngram.Name: map[string]interface{}{
-				"min": 2,
-				"max": 3,
-			},
 		},
 	}); err != nil {
 		return nil, err
