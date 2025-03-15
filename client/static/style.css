@@ -24,26 +24,9 @@
     --container-width: 900px;
 }
 
-@font-face {
-    font-family: NotoSansJP;
-    src: url("NotoSansJP-Bold.ttf");
-    font-weight: 700;
-}
-
-@font-face {
-    font-family: NotoSansJP;
-    src: url("NotoSansJP-Regular.ttf");
-    font-weight: 400;
-}
-
-@font-face {
-    font-family: NotoSansJP;
-    src: url("NotoSansJP-Thin.ttf");
-    font-weight: 200;
-}
-
 html {
     overflow-y: scroll;
+
     /* prevents browsers from automatically adjusting text size on mobile devices when the page orientation changes or when zooming */
     -moz-text-size-adjust: none;
     -webkit-text-size-adjust: none;
@@ -53,7 +36,7 @@ html {
 body,
 input,
 button {
-    font-family: NotoSansJP, serif;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: var(--font-size-medium);
     font-weight: 400;
     font-style: normal;
@@ -99,7 +82,7 @@ input[type="text"] {
     color: #000000;
     padding: var(--spacing-xs) var(--spacing-sm);
     border: 2px solid var(--primary-color);
-    border-radius: var(--spacing-xs);
+    border-radius: var(--spacing-sm);
 }
 
 .search::before {
@@ -187,10 +170,14 @@ input[type="text"] {
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --primary-color: #4E9F3D;
+        --primary-color: #9DDE8B;
         --secondary-color: #1E5128;
         --tertiary-color: #D8E9A8;
         --background-color: #191919;
         --foreground-color: #FFFFFF;
+    }
+
+    #github_icon {
+        filter: invert(1);
     }
 }
