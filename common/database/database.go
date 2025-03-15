@@ -12,7 +12,6 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/lang/cjk"
-	"github.com/blevesearch/bleve/v2/analysis/lang/en"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/ngram"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
@@ -64,25 +63,23 @@ func setupMongoDB(mongoURI string, collectionName string) (*mongo.Database, erro
 func setupBleve(dbVersion string) (bleve.Index, error) {
 	indexMapping := bleve.NewIndexMapping()
 
-	if err := indexMapping.AddCustomAnalyzer("english_no_stop", map[string]interface{}{
+	if err := indexMapping.AddCustomAnalyzer("custom_english", map[string]interface{}{
 		"type":      custom.Name,
 		"tokenizer": unicode.Name,
 		"token_filters": []string{
 			lowercase.Name,
-			en.PossessiveName,
-			en.StopName,
 		},
 	}); err != nil {
 		return nil, err
 	}
 
+	// TODO: Remove it. Using cjk Analyzer instead
 	if err := indexMapping.AddCustomAnalyzer("japanese_ngram", map[string]interface{}{
 		"type":      custom.Name,
 		"tokenizer": unicode.Name,
 		"token_filters": []string{
 			lowercase.Name,
 			cjk.WidthName,
-			ngram.Name,
 		},
 		// https://github.com/blevesearch/bleve/blob/master/analysis/token/ngram/ngram.go
 		"token_maps": map[string]interface{}{
@@ -99,7 +96,7 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 
 	// English indexes
 	meaningsMapping := bleve.NewTextFieldMapping()
-	meaningsMapping.Analyzer = "english_no_stop"
+	meaningsMapping.Analyzer = "custom_english"
 	documentMapping.AddFieldMappingsAt("meanings", meaningsMapping)
 
 	// Kana indexes
@@ -108,7 +105,7 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 	documentMapping.AddFieldMappingsAt("kana_exact", kanaExactMapping)
 
 	kanaCharMapping := bleve.NewTextFieldMapping()
-	kanaExactMapping.Analyzer = "japanese_ngram"
+	kanaCharMapping.Analyzer = cjk.AnalyzerName
 	documentMapping.AddFieldMappingsAt("kana_char", kanaCharMapping)
 
 	// Kanji indexes
@@ -117,13 +114,12 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 	documentMapping.AddFieldMappingsAt("kanji_exact", kanjiExactMapping)
 
 	kanjiCharMapping := bleve.NewTextFieldMapping()
-	kanaExactMapping.Analyzer = "japanese_ngram"
+	kanjiCharMapping.Analyzer = cjk.AnalyzerName
 	documentMapping.AddFieldMappingsAt("kanji_char", kanjiCharMapping)
 
 	// TODO: Romaji!
 
 	// Default mapping
-	indexMapping.DefaultAnalyzer = "english_no_stop"
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)
