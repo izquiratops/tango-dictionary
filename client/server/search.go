@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/izquiratops/tango/common/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,8 +20,11 @@ const (
 	defaultSearchFrom = 0
 )
 
-func (s *Server) search(query string) ([]database.Word, error) {
-	ids, err := performBleveQuery(query, s.db)
+func (s *Server) search(searchTerm string) ([]database.Word, error) {
+	// Make sure to search using lowercase only
+	searchTerm = strings.ToLower(searchTerm)
+
+	ids, err := performBleveQuery(searchTerm, s.db)
 	if err != nil {
 		log.Printf("Failed to run Bleve query: %v", err)
 		return nil, err
@@ -43,29 +45,74 @@ func (s *Server) search(query string) ([]database.Word, error) {
 }
 
 // Code related to Bleve
-func performBleveQuery(query string, db *database.Database) ([]string, error) {
-	meaningsQuery := bleve.NewTermQuery(strings.ToLower(query))
-	meaningsQuery.SetField("meanings")
+func performBleveQuery(searchTerm string, db *database.Database) ([]string, error) {
+	mainQuery := bleve.NewBooleanQuery()
 
-	kanaBooleanQuery := newJapaneseFieldQuery(query, "kana_exact", "kana_char")
-	kanjiBooleanQuery := newJapaneseFieldQuery(query, "kanji_exact", "kanji_char")
+	searchTermType := DetectSearchTermType(searchTerm)
 
-	booleanQuery := bleve.NewBooleanQuery()
-	booleanQuery.AddShould(meaningsQuery)
-	booleanQuery.AddShould(kanaBooleanQuery)
-	booleanQuery.AddShould(kanjiBooleanQuery)
+	switch searchTermType {
+	case "romaji":
+		meaningsPhraseQuery := bleve.NewMatchQuery(searchTerm)
+		meaningsPhraseQuery.SetField("meanings")
+		meaningsPhraseQuery.SetBoost(4.0)
 
-	searchRequest := bleve.NewSearchRequest(booleanQuery)
+		meaningsFuzzyQuery := bleve.NewFuzzyQuery(searchTerm)
+		meaningsFuzzyQuery.SetField("meanings")
+		meaningsFuzzyQuery.SetFuzziness(2.0)
+		meaningsFuzzyQuery.SetBoost(1.0)
+
+		mainQuery.AddShould(
+			meaningsPhraseQuery,
+			meaningsFuzzyQuery,
+		)
+	case "kana":
+		kanaExactQuery := bleve.NewMatchQuery(searchTerm)
+		kanaExactQuery.SetField("kana_exact")
+		kanaExactQuery.SetBoost(5.0)
+
+		kanaPrefixQuery := bleve.NewPrefixQuery(searchTerm)
+		kanaPrefixQuery.SetField("kana_char")
+		kanaPrefixQuery.SetBoost(4.0)
+
+		kanaCharQuery := bleve.NewMatchQuery(searchTerm)
+		kanaCharQuery.SetField("kana_char")
+		kanaCharQuery.SetBoost(1.0)
+
+		mainQuery.AddShould(
+			kanaExactQuery,
+			kanaPrefixQuery,
+			kanaCharQuery,
+		)
+	case "kanji":
+		kanjiExactQuery := bleve.NewMatchPhraseQuery(searchTerm)
+		kanjiExactQuery.SetField("kanji_exact")
+		kanjiExactQuery.SetBoost(5.0)
+
+		kanjiPrefixQuery := bleve.NewPrefixQuery(searchTerm)
+		kanjiPrefixQuery.SetField("kanji_char")
+		kanjiPrefixQuery.SetBoost(4.0)
+
+		kanjiCharQuery := bleve.NewMatchQuery(searchTerm)
+		kanjiCharQuery.SetField("kanji_char")
+		kanjiCharQuery.SetBoost(1.0)
+
+		mainQuery.AddShould(
+			kanjiExactQuery,
+			kanjiPrefixQuery,
+			kanjiCharQuery,
+		)
+	}
+
+	searchRequest := bleve.NewSearchRequest(mainQuery)
+	searchRequest.Explain = true // Debug
+	searchRequest.Size = defaultSearchSize
+	searchRequest.From = defaultSearchFrom
 	searchRequest.Fields = []string{
 		"id",
-		"kana_exact",
 		"kana_char",
-		"kanji_exact",
 		"kanji_char",
 		"meanings",
 	}
-	searchRequest.Size = defaultSearchSize
-	searchRequest.From = defaultSearchFrom
 
 	searchResults, err := db.BleveIndex.Search(searchRequest)
 	if err != nil {
@@ -75,34 +122,6 @@ func performBleveQuery(query string, db *database.Database) ([]string, error) {
 	ids := extractBleveResult(searchResults)
 
 	return ids, nil
-}
-
-func newTermQueryWithBoost(field string, term string, boost float64) *query.TermQuery {
-	query := bleve.NewTermQuery(term)
-	query.SetField(field)
-	query.SetBoost(boost)
-	return query
-}
-
-func newMatchQueryWithBoost(field string, term string, boost float64) *query.MatchQuery {
-	query := bleve.NewMatchQuery(term)
-	query.SetField(field)
-	query.SetBoost(boost)
-	return query
-}
-
-func newJapaneseFieldQuery(query string, exactField string, charField string) *query.BooleanQuery {
-	booleanQuery := bleve.NewBooleanQuery()
-
-	exactQuery := newTermQueryWithBoost(exactField, query, 2.0)
-	booleanQuery.AddShould(exactQuery)
-
-	charQuery := newMatchQueryWithBoost(charField, query, 0.5)
-	disjunctionQuery := bleve.NewDisjunctionQuery(charQuery)
-	disjunctionQuery.SetMin(1)
-	booleanQuery.AddShould(disjunctionQuery)
-
-	return booleanQuery
 }
 
 func extractBleveResult(searchResults *bleve.SearchResult) []string {
@@ -132,6 +151,7 @@ func extractBleveResult(searchResults *bleve.SearchResult) []string {
 
 // Code related to MongoDB
 func fetchWordsByIDs(ids []string, db *database.Database) ([]database.Word, error) {
+	// TODO: use ctx from request
 	ctx := context.Background()
 
 	filter := bson.M{

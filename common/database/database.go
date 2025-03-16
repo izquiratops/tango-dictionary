@@ -9,6 +9,11 @@ import (
 	"github.com/izquiratops/tango/common/types"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	"github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
+	"github.com/blevesearch/bleve/v2/analysis/lang/cjk"
+	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -19,7 +24,7 @@ type Database struct {
 	BleveIndex bleve.Index
 }
 
-func NewDatabase(config types.ServerConfig) (*Database, error) {
+func NewDatabase(config *types.ServerConfig) (*Database, error) {
 	// Collections doesn't allow '.'s on their names
 	mongoCollectionName := strings.Replace(config.JmdictVersion, ".", "_", -1)
 
@@ -46,6 +51,7 @@ func NewDatabase(config types.ServerConfig) (*Database, error) {
 
 func setupMongoDB(mongoURI string, collectionName string) (*mongo.Database, error) {
 	ctx := context.Background()
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
@@ -56,25 +62,43 @@ func setupMongoDB(mongoURI string, collectionName string) (*mongo.Database, erro
 
 func setupBleve(dbVersion string) (bleve.Index, error) {
 	indexMapping := bleve.NewIndexMapping()
+
+	if err := indexMapping.AddCustomAnalyzer("custom_english", map[string]interface{}{
+		"type":      custom.Name,
+		"tokenizer": unicode.Name,
+		"token_filters": []string{
+			lowercase.Name,
+		},
+	}); err != nil {
+		return nil, err
+	}
+
 	documentMapping := bleve.NewDocumentMapping()
 
-	// "keyword" will treat the entire field as a single token
-	kanaExactMapping := bleve.NewTextFieldMapping()
-	kanaExactMapping.Analyzer = "keyword"
-	kanjiExactMapping := bleve.NewTextFieldMapping()
-	kanjiExactMapping.Analyzer = "keyword"
-
-	// Default mappings
-	kanaCharMapping := bleve.NewTextFieldMapping()
-	kanjiCharMapping := bleve.NewTextFieldMapping()
+	// English indexes
 	meaningsMapping := bleve.NewTextFieldMapping()
-
-	documentMapping.AddFieldMappingsAt("kana_exact", kanaExactMapping)
-	documentMapping.AddFieldMappingsAt("kana_char", kanaCharMapping)
-	documentMapping.AddFieldMappingsAt("kanji_exact", kanjiExactMapping)
-	documentMapping.AddFieldMappingsAt("kanji_char", kanjiCharMapping)
+	meaningsMapping.Analyzer = "custom_english"
 	documentMapping.AddFieldMappingsAt("meanings", meaningsMapping)
 
+	// Kana indexes
+	kanaExactMapping := bleve.NewTextFieldMapping()
+	kanaExactMapping.Analyzer = keyword.Name
+	documentMapping.AddFieldMappingsAt("kana_exact", kanaExactMapping)
+
+	kanaCharMapping := bleve.NewTextFieldMapping()
+	kanaCharMapping.Analyzer = cjk.AnalyzerName
+	documentMapping.AddFieldMappingsAt("kana_char", kanaCharMapping)
+
+	// Kanji indexes
+	kanjiExactMapping := bleve.NewTextFieldMapping()
+	kanjiExactMapping.Analyzer = keyword.Name
+	documentMapping.AddFieldMappingsAt("kanji_exact", kanjiExactMapping)
+
+	kanjiCharMapping := bleve.NewTextFieldMapping()
+	kanjiCharMapping.Analyzer = cjk.AnalyzerName
+	documentMapping.AddFieldMappingsAt("kanji_char", kanjiCharMapping)
+
+	// Default mapping
 	indexMapping.AddDocumentMapping("_default", documentMapping)
 
 	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", dbVersion)

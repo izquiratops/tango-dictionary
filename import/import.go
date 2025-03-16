@@ -26,24 +26,16 @@ func Import(db *database.Database, config types.ServerConfig) (string, error) {
 	jsonFilename := fmt.Sprintf("jmdict-eng-%v.json", config.JmdictVersion)
 	jsonPath := filepath.Join("..", "jmdict_source", jsonFilename)
 
+	// Open JMdict json file
 	file, err := os.Open(jsonPath)
 	if err != nil {
 		return "", fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
 
-	// TODO: Throw if can't connect to mongo db
-	// Clear Mongo Collections before start importing data
-	if err := db.MongoWords.Drop(context.Background()); err != nil {
-		return "", fmt.Errorf("error dropping table words")
-	}
-	if err := db.MongoTags.Drop(context.Background()); err != nil {
-		return "", fmt.Errorf("error dropping table tags")
-	}
-
-	var source jmdict.JMdict
+	var jsonSource jmdict.JMdict
 	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&source); err != nil {
+	if err := decoder.Decode(&jsonSource); err != nil {
 		return "", fmt.Errorf("error decoding JSON: %v", err)
 	}
 
@@ -57,7 +49,7 @@ func Import(db *database.Database, config types.ServerConfig) (string, error) {
 	}
 
 	startTime := time.Now()
-	for _, entry := range source.Words {
+	for _, entry := range jsonSource.Words {
 		select {
 		case err := <-errorsChan:
 			close(entriesChan)
@@ -70,7 +62,7 @@ func Import(db *database.Database, config types.ServerConfig) (string, error) {
 	close(entriesChan)
 	wg.Wait()
 
-	fmt.Printf("Dictionary import completed. Processed %d entries in %v\n", len(source.Words), time.Since(startTime))
+	fmt.Printf("Dictionary import completed. Processed %d entries in %v\n", len(jsonSource.Words), time.Since(startTime))
 	return jsonPath, nil
 }
 

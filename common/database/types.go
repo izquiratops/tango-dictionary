@@ -7,6 +7,7 @@ type WordSearchable struct {
 	KanaExact  []string `json:"kana_exact"`
 	KanaChar   []string `json:"kana_char"`
 	Meanings   []string `json:"meanings"`
+	Romaji     []string `json:"romaji"`
 }
 
 type Word struct {
