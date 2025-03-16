@@ -10,11 +10,12 @@ func (be *WordSearchable) UnmarshalJSON(data []byte) error {
 	// Define a temporary struct to unmarshal the JSON data
 	type Alias WordSearchable
 	temp := &struct {
-		KanjiExact interface{} `json:"kanji_exact"`
-		KanjiChar  interface{} `json:"kanji_char"`
-		KanaExact  interface{} `json:"kana_exact"`
-		KanaChar   interface{} `json:"kana_char"`
-		Meanings   interface{} `json:"meanings"`
+		KanjiExact any `json:"kanji_exact"`
+		KanjiChar  any `json:"kanji_char"`
+		KanaExact  any `json:"kana_exact"`
+		KanaChar   any `json:"kana_char"`
+		Meanings   any `json:"meanings"`
+		Romaji     any `json:"romaji"`
 		*Alias
 	}{
 		Alias: (*Alias)(be),
@@ -31,6 +32,7 @@ func (be *WordSearchable) UnmarshalJSON(data []byte) error {
 	be.KanaExact = utils.EnsureSlice(temp.KanaExact)
 	be.KanaChar = utils.EnsureSlice(temp.KanaChar)
 	be.Meanings = utils.EnsureSlice(temp.Meanings)
+	be.Romaji = utils.EnsureSlice(temp.Romaji)
 
 	return nil
 }

@@ -52,18 +52,18 @@ func performBleveQuery(searchTerm string, db *database.Database) ([]string, erro
 
 	switch searchTermType {
 	case "romaji":
-		meaningsPhraseQuery := bleve.NewMatchPhraseQuery(searchTerm)
+		meaningsPhraseQuery := bleve.NewMatchQuery(searchTerm)
 		meaningsPhraseQuery.SetField("meanings")
 		meaningsPhraseQuery.SetBoost(4.0)
 
-		// TODO: Not working
-		meaningsTermQuery := bleve.NewMatchQuery(searchTerm)
-		meaningsTermQuery.SetField("meanings")
-		meaningsTermQuery.SetBoost(1.0)
+		meaningsFuzzyQuery := bleve.NewFuzzyQuery(searchTerm)
+		meaningsFuzzyQuery.SetField("meanings")
+		meaningsFuzzyQuery.SetFuzziness(2.0)
+		meaningsFuzzyQuery.SetBoost(1.0)
 
 		mainQuery.AddShould(
 			meaningsPhraseQuery,
-			meaningsTermQuery,
+			meaningsFuzzyQuery,
 		)
 	case "kana":
 		kanaExactQuery := bleve.NewMatchQuery(searchTerm)
@@ -151,6 +151,7 @@ func extractBleveResult(searchResults *bleve.SearchResult) []string {
 
 // Code related to MongoDB
 func fetchWordsByIDs(ids []string, db *database.Database) ([]database.Word, error) {
+	// TODO: use ctx from request
 	ctx := context.Background()
 
 	filter := bson.M{

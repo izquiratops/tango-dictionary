@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/izquiratops/tango/common/database"
+	"github.com/izquiratops/tango/common/types"
 	"github.com/izquiratops/tango/common/utils"
 )
 
@@ -20,9 +23,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := database.NewDatabase(config)
+	// Remove Bleve index before database connection
+	if err := removeBleveIndex(&config); err != nil {
+		fmt.Fprintf(os.Stderr, "Error removing Bleve index: %v\n", err)
+		os.Exit(1)
+	}
+
+	db, err := database.NewDatabase(&config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Drop MongoDB collections after connection
+	if err := dropMongoCollections(db); err != nil {
+		fmt.Fprintf(os.Stderr, "Error dropping collections: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -41,4 +56,24 @@ func main() {
 		fmt.Printf("\nNext step: Upload the index to your server using SCP:\n")
 		fmt.Printf("scp -r ./jmdict_source/jmdict_X.Y.Z.bleve user@example.com:jmdict_source\n\n")
 	}
+}
+
+func removeBleveIndex(config *types.ServerConfig) error {
+	bleveFilename := fmt.Sprintf("jmdict_%v.bleve", config.JmdictVersion)
+	blevePath := filepath.Join("..", "jmdict_source", bleveFilename)
+
+	return os.RemoveAll(blevePath)
+}
+
+func dropMongoCollections(db *database.Database) error {
+	ctx := context.Background()
+
+	if err := db.MongoWords.Drop(ctx); err != nil {
+		return fmt.Errorf("error dropping Words collection: %w", err)
+	}
+	if err := db.MongoTags.Drop(ctx); err != nil {
+		return fmt.Errorf("error dropping Tags collection: %w", err)
+	}
+
+	return nil
 }

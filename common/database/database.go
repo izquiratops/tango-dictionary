@@ -24,7 +24,7 @@ type Database struct {
 	BleveIndex bleve.Index
 }
 
-func NewDatabase(config types.ServerConfig) (*Database, error) {
+func NewDatabase(config *types.ServerConfig) (*Database, error) {
 	// Collections doesn't allow '.'s on their names
 	mongoCollectionName := strings.Replace(config.JmdictVersion, ".", "_", -1)
 
@@ -51,6 +51,7 @@ func NewDatabase(config types.ServerConfig) (*Database, error) {
 
 func setupMongoDB(mongoURI string, collectionName string) (*mongo.Database, error) {
 	ctx := context.Background()
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
@@ -96,8 +97,6 @@ func setupBleve(dbVersion string) (bleve.Index, error) {
 	kanjiCharMapping := bleve.NewTextFieldMapping()
 	kanjiCharMapping.Analyzer = cjk.AnalyzerName
 	documentMapping.AddFieldMappingsAt("kanji_char", kanjiCharMapping)
-
-	// TODO: Romaji!
 
 	// Default mapping
 	indexMapping.AddDocumentMapping("_default", documentMapping)

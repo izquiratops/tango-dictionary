@@ -103,7 +103,7 @@ func (s *Server) SetupRoutes() *http.ServeMux {
 }
 
 func NewServer(config types.ServerConfig) (*Server, error) {
-	db, err := database.NewDatabase(config)
+	db, err := database.NewDatabase(&config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}

@@ -1,6 +1,6 @@
 package utils
 
-func EnsureSlice(value interface{}) []string {
+func EnsureSlice(value any) []string {
 	switch v := value.(type) {
 	case []interface{}:
 		result := make([]string, len(v))
