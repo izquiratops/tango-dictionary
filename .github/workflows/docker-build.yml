@@ -4,7 +4,11 @@ on:
   push:
       branches:
         - main
-  workflow_dispatch:
+      paths:
+        # Client is the module that end up containerized
+        - 'client/**'
+        # Common is a Client dependency
+        - 'common/**'
 
 jobs:
   build:
