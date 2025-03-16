@@ -3,7 +3,6 @@ name: Compress and Transfer static files
 on:
   push:
     branches:
-      -main
       -testing-transfer-workflow
   workflow_dispatch:
     inputs:
