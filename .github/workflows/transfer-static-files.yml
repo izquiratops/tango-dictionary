@@ -1,18 +1,16 @@
-name: Compress and Transfer static files
+name: Transfer Static Files
 
 on:
   push:
     branches:
-      -testing-transfer-workflow
+      - main
+    paths:
+      - 'client/template/**'
+      - 'client/static/**'
   workflow_dispatch:
-    inputs:
-      mode:
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - modified
+
+env:
+  DROPLET_HOST: "izquiratops.dev"
 
 jobs:
   compress-and-transfer:
@@ -29,77 +27,36 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan ${{ env.DROPLET_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Set up execution mode
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "EXECUTION_MODE=${{ github.event.inputs.mode }}" >> $GITHUB_ENV
-          else
-            # Pushing into main will transfer only modified files.
-            echo "EXECUTION_MODE=modified" >> $GITHUB_ENV
-          fi
+          # Save public key into known_hosts
+          ssh-keyscan -H ${{ env.DROPLET_HOST }} >> ~/.ssh/known_hosts
+
+          # Config SSH
+          echo "Host ${{ env.DROPLET_HOST }}" > ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+          # Make sure everything works
+          ssh -o BatchMode=yes -o ConnectTimeout=5 ${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }} echo "SSH connection successful"
       
-      - name: Log mode info
-        run: |
-          echo "Mode: ${{ env.EXECUTION_MODE }}"
-
-      - name: Setup env variables
-        run: |
-          echo "STATIC_DIR=client/static" >> $GITHUB_ENV
-          echo "COMPRESSED_DIR=client/static_compressed" >> $GITHUB_ENV
-          echo "REMOTE_SERVER=${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:static" >> $GITHUB_ENV
-      
-      - name: Get modified files
-        if: env.EXECUTION_MODE == 'modified'
-        run: |
-          LAST_COMMIT=$(git rev-parse HEAD^)
-          MODIFIED_FILES=$(git diff --name-only $LAST_COMMIT HEAD -- "${{ env.STATIC_DIR }}")
-          if [ -z "$MODIFIED_FILES" ]; then
-            echo "Nothing was modified on ${{ env.STATIC_DIR }}."
-            echo "HAS_CHANGES=false" >> $GITHUB_ENV
-          else
-            echo "Modified files:"
-            echo "HAS_CHANGES=true" >> $GITHUB_ENV
-            echo "$MODIFIED_FILES" > modified_files.txt
-          fi
-
       - name: Compress all files
-        if: env.EXECUTION_MODE == 'all'
         run: |
           echo "Compressing all files..."
-          find "${{env.STATIC_DIR}}" -type f -not -name "*.gz" | while read file; do
+          find "client/static" -type f -not -name "*.gz" | while read file; do
             gzip -k "$file"
             echo "$file compressed."
           done
 
-      - name: Compress modified files
-        if: env.EXECUTION_MODE == 'modified' && env.HAS_CHANGES == 'true'
+      - name: Transfer files
         run: |
-          echo "Compressing modified files..."
-          while IFS= read -r file; do
-            # Skip empty lines
-            [ -z "$file" ] && continue
-            if [ -f "$file" ]; then
-              gzip -k "$file"
-              echo "$file compressed."
-            fi
-          done < modified_files.txt
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+              client/template \
+              "${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:template"
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+              client/static \
+              "${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:static"
 
-      - name: Transfer all files
-        if: env.EXECUTION_MODE == 'all'
+      - name: Cleanup
         run: |
-          rsync -az --delete "${{ env.STATIC_DIR }}" "${{ env.REMOTE_SERVER }}"
-      
-      - name: Transfer modified files
-        if: env.EXECUTION_MODE == 'modified' && env.HAS_CHANGES == 'true'
-        run: |
-          echo "Enviando archivos originales modificados..."
-          while IFS= read -r file; do
-            # Skip empty lines
-            [ -z "$file" ] && continue
-            if [ -f "$file" ]; then
-              rsync -az --delete "${{ env.STATIC_DIR }}{,.gz}" "${{ env.REMOTE_SERVER }}"
-            fi
-          done < modified_files.txt
-      
+          rm -f ~/.ssh/id_rsa
