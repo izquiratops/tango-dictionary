@@ -10,10 +10,10 @@ class WordList {
   }
 
   addWord(word) {
-    const words = this.getWords();
-    words = words.filter(w => w !== word); // Remove existing word
-    words.unshift(word); // Add new word
-    words = words.slice(0, this.maxItems); // Limit to max item count
+    let words = this.getWords();
+    words = words.filter(w => w !== word);
+    words.unshift(word);
+    words = words.slice(0, this.maxItems);
     localStorage.setItem(this.storageKey, JSON.stringify(words));
     return words;
   }
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const words = wordList.getWords();
 
   // Render recent words list
-  document.querySelector('#recent-words').innerHTML = words.map(word => `<li>${word}</li>`).join('');
+  document.querySelector('#recent-words').innerHTML = words.map(word => `<li><a href="/search?query=${word}">${word}</a></li>`).join('');
 
   // Add word to list on new search
   document.querySelector('form[action="/search"]').addEventListener('submit', (event) => {
