@@ -58,7 +58,7 @@ func performBleveQuery(searchTerm string, db *database.Database) ([]string, erro
 
 		meaningsFuzzyQuery := bleve.NewFuzzyQuery(searchTerm)
 		meaningsFuzzyQuery.SetField("meanings")
-		meaningsFuzzyQuery.SetFuzziness(2.0)
+		meaningsFuzzyQuery.SetFuzziness(1.0)
 		meaningsFuzzyQuery.SetBoost(1.0)
 
 		mainQuery.AddShould(
