@@ -28,11 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const words = wordList.getWords();
 
   // Render recent words list
-  document.querySelector('#recent-words').innerHTML = words.map(word => `<li><a href="/search?query=${word}">${word}</a></li>`).join('');
+  const recentWordsEl = document.querySelector('#recent-words')
+  if (recentWordsEl) {
+    recentWordsEl.innerHTML = words.map(word => `<li><a href="/search?query=${word}">${word}</a></li>`).join('');
+  }
 
   // Add word to list on new search
   document.querySelector('form[action="/search"]').addEventListener('submit', (event) => {
-    const word = event.target.querySelector('input').value;
-    wordList.addWord(word);
+    wordList.addWord(event.target.querySelector('input').value);
   });
 });
