@@ -6,16 +6,16 @@ import (
 	"os"
 
 	"github.com/izquiratops/tango/client/server"
-	"github.com/izquiratops/tango/common/utils"
+	"github.com/izquiratops/tango/common/config"
 )
 
-var mongoDomainMap = map[bool]string{
-	true:  "localhost",
-	false: "mongo",
+var mongoDomainMap = map[config.EnvironmentType]string{
+	config.LocalEnv:  "localhost",
+	config.ServerEnv: "mongo", // Client runs in a container, so it can connect to the 'mongo' container
 }
 
 func main() {
-	config, err := utils.LoadEnvironmentConfig(mongoDomainMap)
+	config, err := config.LoadEnvironment(mongoDomainMap)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)

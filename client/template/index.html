@@ -5,6 +5,10 @@
     <title>Tango</title>
     <link rel="stylesheet" href="./static/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="./static/index.js" defer></script>
+    <!-- <link rel="icon" href="./static/favicon.ico" type="image/x-icon"> -->
+    <!-- TODO: <link rel="shortcut icon" href="./static/favicon.ico" type="image/x-icon"> -->
+    <!-- TODO: <link rel="manifest" href="./static/site.webmanifest"> -->
 </head>
 
 <body>
@@ -12,6 +16,7 @@
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
     </form>
+    <ul id="recent-words"></ul>
     <section>
         <p>
             This website is a Japanese-English dictionary, it provides a simple way to look up Japanese words and their English meanings.

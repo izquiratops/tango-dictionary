@@ -151,6 +151,13 @@ input[type="text"] {
     background: var(--secondary-color);
 }
 
+#recent-words {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: var(--spacing-sm);
+    margin-block: var(--spacing-sm);
+}
+
 #title {
     text-decoration: none;
     color: inherit;

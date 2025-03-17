@@ -26,12 +26,19 @@ type SearchData struct {
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
 	templatePath, _ := utils.GetAbsolutePath("template/index.html")
 	http.ServeFile(w, r, templatePath)
+
+	duration := time.Since(startTime)
+	s.logRequest(r, http.StatusOK, duration)
 }
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
+	statusCode := http.StatusOK
+
 	query := r.URL.Query().Get("query")
 	results, err := s.search(query)
 
@@ -40,7 +47,11 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 		if err.Error() == "EMPTY_LIST" {
 			templatePath, _ = utils.GetAbsolutePath("template/not_found.html")
 		} else {
-			http.Error(w, fmt.Sprintf("Search error: %v", err), http.StatusInternalServerError)
+			statusCode = http.StatusInternalServerError
+			http.Error(w, fmt.Sprintf("Search error: %v", err), statusCode)
+
+			duration := time.Since(startTime)
+			s.logRequest(r, statusCode, duration)
 			return
 		}
 	} else {
@@ -50,7 +61,11 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse template
 	tmpl, err := template.ParseFiles(templatePath)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Template parsing error: %v", err), http.StatusInternalServerError)
+		statusCode = http.StatusInternalServerError
+		http.Error(w, fmt.Sprintf("Template parsing error: %v", err), statusCode)
+
+		duration := time.Since(startTime)
+		s.logRequest(r, statusCode, duration)
 		return
 	}
 
@@ -60,15 +75,22 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 		Results: results,
 	}
 	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("Template rendering error: %v", err), http.StatusInternalServerError)
+		statusCode = http.StatusInternalServerError
+		http.Error(w, fmt.Sprintf("Template rendering error: %v", err), statusCode)
+
+		duration := time.Since(startTime)
+		s.logRequest(r, statusCode, duration)
 		return
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("Served search '%s' in %v\n", query, duration)
+	s.logRequest(r, http.StatusOK, duration)
 }
 
 func (s *Server) staticFileHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	statusCode := http.StatusOK
+
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		path := strings.TrimPrefix(r.URL.Path, "/static/")
 		gzPath := filepath.Join("static", path+".gz")
@@ -77,13 +99,19 @@ func (s *Server) staticFileHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Encoding", "gzip")
 			w.Header().Set("Content-Type", getContentType(path))
 			http.ServeFile(w, r, gzPath)
+
+			duration := time.Since(startTime)
+			s.logRequest(r, statusCode, duration)
 			return
 		}
 	}
 
-	// Fall back to the original file server if no compressed version exists
+	// Fallback to the original file server if no compressed version exists
 	// or if the client doesn't accept gzip
 	s.staticPrefix.ServeHTTP(w, r)
+
+	duration := time.Since(startTime)
+	s.logRequest(r, statusCode, duration)
 }
 
 func (s *Server) SetupRoutes() *http.ServeMux {

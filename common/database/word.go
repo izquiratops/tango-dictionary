@@ -1,15 +1,5 @@
 package database
 
-type WordSearchable struct {
-	ID         string   `json:"id"`
-	KanjiExact []string `json:"kanji_exact"`
-	KanjiChar  []string `json:"kanji_char"`
-	KanaExact  []string `json:"kana_exact"`
-	KanaChar   []string `json:"kana_char"`
-	Meanings   []string `json:"meanings"`
-	Romaji     []string `json:"romaji"`
-}
-
 type Word struct {
 	ID         string     `json:"id" bson:"_id"`
 	MainWord   Furigana   `json:"mainWord" bson:"main_word"`     // Primary word representation

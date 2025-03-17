@@ -6,6 +6,16 @@ import (
 	"github.com/izquiratops/tango/common/utils"
 )
 
+type WordSearchable struct {
+	ID         string   `json:"id"`
+	KanjiExact []string `json:"kanji_exact"`
+	KanjiChar  []string `json:"kanji_char"`
+	KanaExact  []string `json:"kana_exact"`
+	KanaChar   []string `json:"kana_char"`
+	Meanings   []string `json:"meanings"`
+	Romaji     []string `json:"romaji"`
+}
+
 func (be *WordSearchable) UnmarshalJSON(data []byte) error {
 	// Define a temporary struct to unmarshal the JSON data
 	type Alias WordSearchable
