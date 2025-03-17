@@ -6,18 +6,18 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/izquiratops/tango/common/config"
 	"github.com/izquiratops/tango/common/database"
 	"github.com/izquiratops/tango/common/types"
-	"github.com/izquiratops/tango/common/utils"
 )
 
-var mongoDomainMap = map[bool]string{
-	true:  "localhost",
-	false: "izquiratops.dev", // Connect to the droplet's mongo instance
+var mongoDomainMap = map[config.EnvironmentType]string{
+	config.LocalEnv:  "localhost",
+	config.ServerEnv: "izquiratops.dev", // Import runs externally, so it connects to the server
 }
 
 func main() {
-	config, err := utils.LoadEnvironmentConfig(mongoDomainMap)
+	config, err := config.LoadEnvironment(mongoDomainMap)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
