@@ -8,7 +8,7 @@ import (
 	"github.com/izquiratops/tango/common/types"
 )
 
-const defaultMongoPort = "27017"
+const defaultMongoPort = 27017
 
 func LoadEnvironment(envMap map[EnvironmentType]string) (types.ServerConfig, error) {
 	jmdictVersion := os.Getenv("TANGO_VERSION")
@@ -30,9 +30,9 @@ func LoadEnvironment(envMap map[EnvironmentType]string) (types.ServerConfig, err
 	mongoUser := os.Getenv("MONGO_INITDB_ROOT_USERNAME")
 	mongoPassword := os.Getenv("MONGO_INITDB_ROOT_PASSWORD")
 	if mongoUser != "" && mongoPassword != "" {
-		mongoURI = fmt.Sprintf("mongodb://%s:%s@%s:%n", mongoUser, mongoPassword, mongoDomain, defaultMongoPort)
+		mongoURI = fmt.Sprintf("mongodb://%s:%s@%s:%d", mongoUser, mongoPassword, mongoDomain, defaultMongoPort)
 	} else {
-		mongoURI = fmt.Sprintf("mongodb://%s:%n", mongoDomain, defaultMongoPort)
+		mongoURI = fmt.Sprintf("mongodb://%s:%d", mongoDomain, defaultMongoPort)
 	}
 
 	return types.ServerConfig{
