@@ -1,4 +1,4 @@
-# Tango - Japanese Dictionary Application
+# Tango 🎋
 
 Tango is a Japanese-English dictionary that provides a web-based interface. It provides a simple way to look up Japanese words and their English translations. While it's still in development, the goal is to create a resource similar to [Jisho.org](https://jisho.org).
 
@@ -44,7 +44,7 @@ The application is deployed using Docker Compose with the following services:
 
 - Docker and Docker Compose
 - A MongoDB instance installed somewhere
-- [JMDict Simplified](https://github.com/scriptin/jmdict-simplified) source files.
+- [JMDict Simplified](https://github.com/scriptin/jmdict-simplified) source files
 
 ### Setup
 
