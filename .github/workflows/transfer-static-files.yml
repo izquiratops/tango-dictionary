@@ -25,20 +25,20 @@ jobs:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-          # Save public key into known_hosts
-          ssh-keyscan -H ${{ env.DROPLET_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_actions_deploy
+          chmod 600 ~/.ssh/github_actions_deploy
 
           # Config SSH
           echo "Host ${{ env.DROPLET_HOST }}" > ~/.ssh/config
+          echo "  ConnectTimeout 20" >> ~/.ssh/config
           echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-          echo "  UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+          echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+          echo "  IdentitiesOnly yes" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/github_actions_deploy" >> ~/.ssh/config
           chmod 600 ~/.ssh/config
 
           # Make sure everything works
-          ssh -o BatchMode=yes -o ConnectTimeout=5 ${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }} echo "SSH connection successful"
+          ssh ${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }} echo "SSH connection successful"
       
       - name: Compress all files
         run: |
