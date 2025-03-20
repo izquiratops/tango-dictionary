@@ -50,12 +50,10 @@ jobs:
 
       - name: Transfer files
         run: |
-          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+          rsync -avz --delete \
               client/template \
-              "${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:template"
-          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
               client/static \
-              "${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:static"
+              "${{ secrets.DROPLET_USER }}@${{ env.DROPLET_HOST }}:~/"
 
       - name: Cleanup
         run: |
