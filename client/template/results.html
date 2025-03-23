@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./static/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="./static/index.js" defer></script>
+    <link rel="icon" href="./static/favicon.png" type="image/x-icon">
 </head>
 
 <body>
@@ -14,6 +15,7 @@
     </header>
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
+        <ul id="recent-words"></ul>
     </form>
     <h2 class="search">{{.Query}}</h2>
     <ul class="bottom_spaced">

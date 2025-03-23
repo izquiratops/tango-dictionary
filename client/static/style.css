@@ -1,9 +1,8 @@
 :root {
     /* light theme */
-    --primary-color: #89AC46;
-    --secondary-color: #D3E671;
-    --tertiary-color: #F8ED8C;
-    --background-color: #FBFFDC;
+    --primary-color: #FA7070;
+    --secondary-color: #C6EBC5;
+    --background-color: #FEFDED;
     --foreground-color: #000000;
 
     /* Spacing */
@@ -58,7 +57,7 @@ a {
     color: var(--primary-color);
 }
 
-h1 {
+h1, h2, h3 {
     line-height: 1.2em;
 }
 
@@ -74,16 +73,14 @@ ul {
 
 form {
     display: flex;
-    gap: var(--spacing-sm);
+    flex-direction: column;
 }
 
 input[type="text"] {
-    width: 100%;
-    font-size: var(--font-size-medium);
-    color: #000000;
-    padding: var(--spacing-xs) var(--spacing-sm);
     border: 4px solid var(--primary-color);
-    border-radius: 0px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    color: black;
+    border-radius: 4px 4px 0px 0px;
 }
 
 .search::before {
@@ -151,21 +148,26 @@ input[type="text"] {
     background: var(--secondary-color);
 }
 
-#recent-words {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: var(--spacing-sm);
-    margin-block: var(--spacing-sm);
-}
-
 #title {
     text-decoration: none;
     color: inherit;
 }
 
-#github_icon {
-    height: 1em;
-    margin-inline-start: var(--spacing-xs);
+#recent-words {
+    /* layout */
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: var(--spacing-sm);
+    /* keep same look as input[type="text"] */
+    background: var(--primary-color);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    color: var(--foreground-color);
+    border-radius: 0px 0px 4px 4px;
+    /* override how <a> looks */
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
 }
 
 @media screen and (min-width: 480px) {
@@ -179,14 +181,9 @@ input[type="text"] {
 @media (prefers-color-scheme: dark) {
     /* dark theme */
     :root {
-        --primary-color: #9DDE8B;
-        --secondary-color: #1E5128;
-        --tertiary-color: #D8E9A8;
-        --background-color: #191919;
-        --foreground-color: #FFFFFF;
-    }
-
-    #github_icon {
-        filter: invert(1);
+        --primary-color: #31511E;
+        --secondary-color: #859F3D;
+        --background-color: #1A1A19;
+        --foreground-color: #F6FCDF;
     }
 }

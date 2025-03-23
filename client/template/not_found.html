@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html>
-    
+
 <head>
     <title>Not found 😔</title>
     <link rel="stylesheet" href="./static/style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="./static/index.js" defer></script>
+    <link rel="icon" href="./static/favicon.png" type="image/x-icon">
 </head>
 
 <body>
     <h1><a id="title" href="/" title="Go Home">Tango 🎋</a></h1>
     <form action="/search" method="get">
         <input type="text" name="query" placeholder="English or Japanse" required>
+        <ul id="recent-words"></ul>
     </form>
-    <ul id="recent-words"></ul>
-    <h3>I couldn't find "{{.Query}}"</h3>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+        <h2>Sorry! I couldn't find anything that matches "{{.Query}}"</h2>
+        <img src="./static/not_found.png" style="max-width: 400px;">
+    </div>
 </body>
+
 </html>
