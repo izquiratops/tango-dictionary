@@ -41,21 +41,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	jsonPath, err := Import(db, config)
+	_, err = Import(db, config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Details: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("\n==============================================\n")
 	fmt.Printf("✅ IMPORT COMPLETED SUCCESSFULLY!\n")
-	fmt.Printf("==============================================\n\n")
-	fmt.Printf("The Bleve index was created in: %s\n", jsonPath)
-
-	if !config.MongoRunsLocal {
-		fmt.Printf("\nNext step: Upload the index to your server using SCP:\n")
-		fmt.Printf("scp -r ./jmdict_source/jmdict_X.Y.Z.bleve user@example.com:jmdict_source\n\n")
-	}
 }
 
 func removeBleveIndex(config *types.ServerConfig) error {
