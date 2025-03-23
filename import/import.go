@@ -62,8 +62,29 @@ func Import(db *database.Database, config types.ServerConfig) (string, error) {
 	close(entriesChan)
 	wg.Wait()
 
+	tagsChan := make(chan string)
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go bulkImportJmdictTags(tagsChan, errorsChan, &wg, db)
+	}
+
+	for _, tag := range jsonSource.Tags {
+		select {
+		case err := <-errorsChan:
+			close(tagsChan)
+			return "", fmt.Errorf("worker error: %v", err)
+		default:
+			tagsChan <- tag
+		}
+	}
+
 	fmt.Printf("Dictionary import completed. Processed %d entries in %v\n", len(jsonSource.Words), time.Since(startTime))
 	return jsonPath, nil
+}
+
+func bulkImportJmdictTags(tag <-chan string, errors chan<- error, wg *sync.WaitGroup, di *database.Database) {
+	// TODO
 }
 
 func bulkImportJmdictEntries(jsonEntries <-chan jmdict.JMdictWord, errors chan<- error, wg *sync.WaitGroup, di *database.Database) {
