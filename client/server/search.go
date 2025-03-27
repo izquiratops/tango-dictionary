@@ -172,7 +172,7 @@ func fetchWordsByIDs(ids []string, db *database.Database) ([]database.Word, erro
 	}
 
 	// Sorting what mongo returns to match the order of Bleve IDs
-	sortedResults := sortWords(results, ids)
+	sortedResults := sortToTargetedOrder(results, ids)
 
 	return sortedResults, nil
 }
@@ -194,7 +194,7 @@ func extractCursorResult(cursor *mongo.Cursor, ctx context.Context) ([]database.
 	return results, nil
 }
 
-func sortWords(results []database.Word, targetOrder []string) []database.Word {
+func sortToTargetedOrder(results []database.Word, targetOrder []string) []database.Word {
 	sort.SliceStable(results, func(i, j int) bool {
 		for _, id := range targetOrder {
 			if results[i].ID == id {
@@ -204,7 +204,17 @@ func sortWords(results []database.Word, targetOrder []string) []database.Word {
 				return false
 			}
 		}
+
 		return false // This should never be reached if all IDs are found
+	})
+
+	sort.SliceStable(results, func(i, j int) bool {
+		// Give priority to common words with the same reading
+		if results[i].MainWord.Reading == results[j].MainWord.Reading && results[i].Common && !results[j].Common {
+			return true
+		}
+
+		return false
 	})
 
 	return results
