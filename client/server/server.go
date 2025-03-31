@@ -1,23 +1,20 @@
 package server
 
 import (
+	"context"
 	"fmt"
-	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/izquiratops/tango/common/database"
 	"github.com/izquiratops/tango/common/types"
-	"github.com/izquiratops/tango/common/utils"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Server struct {
 	db           *database.Database
 	config       types.ServerConfig
 	staticPrefix http.Handler
+	tagsCache    map[string]string
 }
 
 type SearchData struct {
@@ -25,98 +22,27 @@ type SearchData struct {
 	Results []database.Word
 }
 
-func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-
-	templatePath, _ := utils.GetAbsolutePath("template/index.html")
-	http.ServeFile(w, r, templatePath)
-
-	duration := time.Since(startTime)
-	s.logRequest(r, http.StatusOK, duration)
-}
-
-func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	statusCode := http.StatusOK
-
-	query := r.URL.Query().Get("query")
-	results, err := s.search(query)
-
-	var templatePath string
+func NewServer(config types.ServerConfig) (*Server, error) {
+	db, err := database.NewDatabase(&config)
 	if err != nil {
-		if err.Error() == "EMPTY_LIST" {
-			templatePath, _ = utils.GetAbsolutePath("template/not_found.html")
-		} else {
-			statusCode = http.StatusInternalServerError
-			http.Error(w, fmt.Sprintf("Search error: %v", err), statusCode)
-
-			duration := time.Since(startTime)
-			s.logRequest(r, statusCode, duration)
-			return
-		}
-	} else {
-		templatePath, _ = utils.GetAbsolutePath("template/results.html")
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	// Parse template
-	tmpl, err := template.ParseFiles(templatePath)
+	tagsCache, err := setupTagsCache(db)
 	if err != nil {
-		statusCode = http.StatusInternalServerError
-		http.Error(w, fmt.Sprintf("Template parsing error: %v", err), statusCode)
-
-		duration := time.Since(startTime)
-		s.logRequest(r, statusCode, duration)
-		return
+		return nil, fmt.Errorf("failed to setup tags cache: %w", err)
 	}
 
-	// Render template
-	data := SearchData{
-		Query:   query,
-		Results: results,
-	}
-	if err := tmpl.Execute(w, data); err != nil {
-		statusCode = http.StatusInternalServerError
-		http.Error(w, fmt.Sprintf("Template rendering error: %v", err), statusCode)
+	fmt.Printf("Tags cache initialized successfully\n")
 
-		duration := time.Since(startTime)
-		s.logRequest(r, statusCode, duration)
-		return
-	}
-
-	duration := time.Since(startTime)
-	s.logRequest(r, http.StatusOK, duration)
-}
-
-func (s *Server) staticFileHandler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	statusCode := http.StatusOK
-
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		path := strings.TrimPrefix(r.URL.Path, "/static/")
-		gzPath := filepath.Join("static", path+".gz")
-
-		if _, err := os.Stat(gzPath); err == nil {
-			w.Header().Set("Content-Encoding", "gzip")
-			w.Header().Set("Content-Type", getContentType(path))
-			http.ServeFile(w, r, gzPath)
-
-			duration := time.Since(startTime)
-			s.logRequest(r, statusCode, duration)
-			return
-		}
-	}
-
-	// Fallback to the original file server if no compressed version exists
-	// or if the client doesn't accept gzip
-	s.staticPrefix.ServeHTTP(w, r)
-
-	duration := time.Since(startTime)
-	s.logRequest(r, statusCode, duration)
+	return &Server{
+		db:        db,
+		config:    config,
+		tagsCache: tagsCache,
+	}, nil
 }
 
 func (s *Server) SetupRoutes() *http.ServeMux {
-	fmt.Printf("Setting up routes...\n")
-
 	staticSystem := http.Dir("static")
 	staticServer := http.FileServer(staticSystem)
 	s.staticPrefix = http.StripPrefix("/static", staticServer)
@@ -130,14 +56,28 @@ func (s *Server) SetupRoutes() *http.ServeMux {
 	return mux
 }
 
-func NewServer(config types.ServerConfig) (*Server, error) {
-	db, err := database.NewDatabase(&config)
+func setupTagsCache(db *database.Database) (map[string]string, error) {
+	ctx := context.Background()
+	cursor, err := db.MongoTags.Find(ctx, bson.M{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
+		return nil, fmt.Errorf("error fetching tags: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	tags := make(map[string]string)
+
+	for cursor.Next(ctx) {
+		var tag database.Tag
+		if err := cursor.Decode(&tag); err != nil {
+			return nil, fmt.Errorf("error decoding tag: %v", err)
+		}
+
+		tags[tag.Name] = tag.Description
 	}
 
-	return &Server{
-		db:     db,
-		config: config,
-	}, nil
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over tags: %v", err)
+	}
+
+	return tags, nil
 }

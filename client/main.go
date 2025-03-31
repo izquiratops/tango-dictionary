@@ -21,14 +21,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("\nInitializing server...\n")
-
+	fmt.Printf("Initializing server...\n")
 	server, err := server.NewServer(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't initialize the server: %v\n", err)
 		os.Exit(1)
 	}
 
+	fmt.Printf("Setting up routes...\n")
 	mux := server.SetupRoutes()
 
 	fmt.Printf("Server listening at 0.0.0.0:8080\n")
